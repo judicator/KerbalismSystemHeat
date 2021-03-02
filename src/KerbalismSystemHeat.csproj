@@ -41,6 +41,12 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\KSP 1.8.1 - test\KSP_x64_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
+    <Reference Include="Kerbalism">
+      <HintPath>..\..\..\..\..\..\ksp_mods\Kerbalism-master\BuildSystem\BinariesDebug\Kerbalism.dll</HintPath>
+    </Reference>
+    <Reference Include="KerbalismBootstrap">
+      <HintPath>..\..\..\..\..\..\ksp_mods\Kerbalism-master\BuildSystem\BinariesDebug\KerbalismBootstrap.dll</HintPath>
+    </Reference>
     <Reference Include="KSPAssets">
       <HintPath>..\..\..\..\..\KSP 1.8.1 - test\KSP_x64_Data\Managed\KSPAssets.dll</HintPath>
     </Reference>
@@ -81,14 +87,24 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Modules\SHFissionReactorKerbalismUpdater.cs" />
+    <Compile Include="DetectKerbalism.cs" />
+    <Compile Include="KerbalismAPI.cs" />
     <Compile Include="Lib.cs" />
+    <Compile Include="Modules\SHConverterKerbalism.cs" />
+    <Compile Include="Modules\SHFissionEngineKerbalismUpdater.cs" />
+    <Compile Include="Modules\SHFissionReactorKerbalismUpdater.cs" />
+    <Compile Include="Modules\SHHarvesterKerbalism.cs" />
+    <Compile Include="Modules\SHRadiatorKerbalism.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(ProjectName).dll" "d:\KSP 1.8.1 - test\GameData\KerbalismSystemHeat\Plugins\KerbalismSystemHeat.dll"</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-
 namespace KerbalismSystemHeat
 {
 	// Copy/paste from Kerbalism/Lib.cs
-	#region PROTO
 	public static class Proto
 	{
 		public static bool GetBool( ProtoPartModuleSnapshot m, string name, bool def_value = false )
@@ -12,6 +8,13 @@ namespace KerbalismSystemHeat
 			bool v;
 			string s = m.moduleValues.GetValue( name );
 			return s != null && bool.TryParse( s, out v ) ? v : def_value;
+		}
+
+		public static int GetInt(ProtoPartModuleSnapshot m, string name, int def_value = 0)
+		{
+			int v;
+			string s = m.moduleValues.GetValue(name);
+			return s != null && int.TryParse(s, out v) ? v : def_value;
 		}
 
 		public static float GetFloat( ProtoPartModuleSnapshot m, string name, float def_value = 0.0f )
@@ -34,5 +37,4 @@ namespace KerbalismSystemHeat
 			module.moduleValues.SetValue( value_name, value.ToString(), true );
 		}
 	}
-	#endregion
 }

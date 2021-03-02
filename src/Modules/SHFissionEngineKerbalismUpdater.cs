@@ -5,14 +5,14 @@ using SystemHeat;
 
 namespace KerbalismSystemHeat
 {
-	public class SystemHeatFissionReactorKerbalismUpdater : PartModule
+	public class SystemHeatFissionEngineKerbalismUpdater : PartModule
 	{
-		// This should correspond to the related ModuleSystemHeatFissionReactor
+		// This should correspond to the related ModuleSystemHeatFissionEngine
 		[KSPField(isPersistant = true)]
-		public string reactorModuleID;
+		public string engineModuleID;
 
-		protected static string reactorModuleName = "ModuleSystemHeatFissionReactor";
-		protected ModuleSystemHeatFissionReactor reactorModule;
+		protected const string engineModuleName = "ModuleSystemHeatFissionEngine";
+		protected ModuleSystemHeatFissionEngine engineModule;
 
 		protected bool resourcesListParsed = false;
 		protected List<ResourceRatio> inputs;
@@ -22,7 +22,7 @@ namespace KerbalismSystemHeat
 		{
 			if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
 			{
-				reactorModule = FindReactorModule(part, reactorModuleID);
+				engineModule = FindEngineModule(part, engineModuleID);
 				if (inputs == null || inputs.Count == 0)
 				{
 					ConfigNode node = ModuleUtils.GetModuleConfigNode(part, moduleName);
@@ -40,12 +40,12 @@ namespace KerbalismSystemHeat
 			ParseResourcesList(part);
 		}
 
-		// Fetch input/output resources list from reactor ConfigNode
+		// Fetch input/output resources list from engine ConfigNode
 		protected void ParseResourcesList(Part part)
 		{
 			if (!resourcesListParsed)
 			{
-				ConfigNode node = ModuleUtils.GetModuleConfigNode(part, reactorModuleName);
+				ConfigNode node = ModuleUtils.GetModuleConfigNode(part, engineModuleName);
 				if (node != null)
 				{
 					// Load resource nodes
@@ -74,17 +74,17 @@ namespace KerbalismSystemHeat
 		// This will be called by Kerbalism in the editor (VAB/SPH), possibly several times after a change to the vessel
 		public string PlannerUpdate(List<KeyValuePair<string, double>> resourceChangeRequest, CelestialBody body, Dictionary<string, double> environment)
 		{
-			if (reactorModule != null)
+			if (engineModule != null)
 			{
-				string title = "fission reactor";
+				string title = "fission engine";
 
-				float curECGeneration = reactorModule.ElectricalGeneration.Evaluate(reactorModule.CurrentReactorThrottle);
+				float curECGeneration = engineModule.ElectricalGeneration.Evaluate(engineModule.CurrentReactorThrottle);
 				if (curECGeneration > 0)
 				{
 					resourceChangeRequest.Add(new KeyValuePair<string, double>("ElectricCharge", curECGeneration));
 				}
 
-				float fuelThrottle = reactorModule.CurrentReactorThrottle / 100f;
+				float fuelThrottle = engineModule.CurrentReactorThrottle / 100f;
 				if (fuelThrottle > 0)
 				{
 					ParseResourcesList(part);
@@ -99,22 +99,22 @@ namespace KerbalismSystemHeat
 				}
 				return title;
 			}
-			return "ERR: no reactor";
+			return "ERR: no engine";
 		}
 
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
-			ProtoPartModuleSnapshot reactorModuleSnapshot = FindReactorModuleSnapshot(part_snapshot, Proto.GetString(module_snapshot, "reactorModuleID"));
-			if (reactorModuleSnapshot != null)
+			ProtoPartModuleSnapshot engineModuleSnapshot = FindEngineModuleSnapshot(part_snapshot, Proto.GetString(module_snapshot, "engineModuleID"));
+			if (engineModuleSnapshot != null)
 			{
-				string title = "fission reactor";
+				string title = "fission engine";
 
-				if (Proto.GetBool(reactorModuleSnapshot, "Enabled"))
+				if (Proto.GetBool(engineModuleSnapshot, "Enabled"))
 				{
-					float curECGeneration = Proto.GetFloat(reactorModuleSnapshot, "CurrentElectricalGeneration");
-					float fuelThrottle = Proto.GetFloat(reactorModuleSnapshot, "CurrentReactorThrottle") / 100f;
-					// Resources generation/consumption according to reactor throttle parameter
+					float curECGeneration = Proto.GetFloat(engineModuleSnapshot, "CurrentElectricalGeneration");
+					float fuelThrottle = Proto.GetFloat(engineModuleSnapshot, "CurrentReactorThrottle") / 100f;
+					// Resources generation/consumption according to engine throttle parameter
 					if (curECGeneration > 0)
 					{
 						resourceChangeRequest.Add(new KeyValuePair<string, double>("ElectricCharge", curECGeneration));
@@ -123,71 +123,71 @@ namespace KerbalismSystemHeat
 					{
 						try
 						{
-							(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).ParseResourcesList(proto_part);
-							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
+							(proto_part_module as SystemHeatFissionEngineKerbalismUpdater).ParseResourcesList(proto_part);
+							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
 							{
 								resourceChangeRequest.Add(new KeyValuePair<string, double>(ratio.ResourceName, -fuelThrottle * ratio.Ratio));
 							}
-							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).outputs)
+							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).outputs)
 							{
 								resourceChangeRequest.Add(new KeyValuePair<string, double>(ratio.ResourceName, fuelThrottle * ratio.Ratio));
 							}
 						}
 						catch (Exception e)
 						{
-							Utils.LogError($"[{proto_part}] Cannot parse ModuleSystemHeatFissionReactor resource list: {e}.");
+							Utils.LogError($"[{proto_part}] Cannot parse ModuleSystemHeatFissionEngine resource list: {e}.");
 						}
 					}
 				}
 				// Set LastUpdate to current time - this is done to prevent double resources consumption
 				// Background resource consumption is already handled earlier in this method,
-				// no need to do it again on craft activation in ModuleSystemHeatFissionReactor.DoCatchup()
-				Proto.Set(reactorModuleSnapshot, "LastUpdateTime", Planetarium.GetUniversalTime());
+				// no need to do it again on craft activation in ModuleSystemHeatFissionEngine.DoCatchup()
+				Proto.Set(engineModuleSnapshot, "LastUpdateTime", Planetarium.GetUniversalTime());
 				return title;
 			}
-			return "ERR: no reactor";
+			return "ERR: no engine";
 		}
 
-		// Find associated Reactor module
-		public ModuleSystemHeatFissionReactor FindReactorModule(Part part, string moduleName)
+		// Find associated Engine module
+		public ModuleSystemHeatFissionEngine FindEngineModule(Part part, string moduleName)
 		{
-			ModuleSystemHeatFissionReactor reactor = part.GetComponents<ModuleSystemHeatFissionReactor>().ToList().Find(x => x.moduleID == moduleName);
+			ModuleSystemHeatFissionEngine engine = part.GetComponents<ModuleSystemHeatFissionEngine>().ToList().Find(x => x.moduleID == moduleName);
 
-			if (reactor == null)
+			if (engine == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionReactor named {moduleName} was found, using first instance");
-				reactorModule = part.GetComponents<ModuleSystemHeatFissionReactor>().ToList().First();
+				Utils.LogError($"[{part}] No ModuleSystemHeatFissionEngine named {moduleName} was found, using first instance");
+				engineModule = part.GetComponents<ModuleSystemHeatFissionEngine>().ToList().First();
 			}
-			if (reactor == null)
+			if (engine == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionReactor was found.");
+				Utils.LogError($"[{part}] No ModuleSystemHeatFissionEngine was found.");
 			}
-			return reactor;
+			return engine;
 		}
 
-		// Find associated Reactor module snapshot (used for unloaded vessels as they only have Modules snapshots)
-		protected static ProtoPartModuleSnapshot FindReactorModuleSnapshot(ProtoPartSnapshot part_snapshot, string moduleName)
+		// Find associated Engine module snapshot (used for unloaded vessels as they only have Modules snapshots)
+		protected static ProtoPartModuleSnapshot FindEngineModuleSnapshot(ProtoPartSnapshot part_snapshot, string moduleName)
 		{
-			ProtoPartModuleSnapshot reactorModuleSnapshot = null;
+			ProtoPartModuleSnapshot engineModuleSnapshot = null;
 			for (int i = 0; i < part_snapshot.modules.Count; i++)
 			{
-				if (part_snapshot.modules[i].moduleName == reactorModuleName)
+				if (part_snapshot.modules[i].moduleName == engineModuleName)
 				{
 					if (part_snapshot.modules[i].moduleValues.GetValue("moduleID") == moduleName)
 					{
-						reactorModuleSnapshot = part_snapshot.modules[i];
+						engineModuleSnapshot = part_snapshot.modules[i];
 					}
 				}
 			}
-			if (reactorModuleSnapshot == null)
+			if (engineModuleSnapshot == null)
 			{
-				reactorModuleSnapshot = part_snapshot.FindModule(reactorModuleName);
+				engineModuleSnapshot = part_snapshot.FindModule(engineModuleName);
 			}
-			if (reactorModuleSnapshot == null)
+			if (engineModuleSnapshot == null)
 			{
-				Utils.LogError($"[{part_snapshot.partName}] No {reactorModuleName} was found in Part Snapshot.");
+				Utils.LogError($"[{part_snapshot.partName}] No {engineModuleName} was found in Part Snapshot.");
 			}
-			return reactorModuleSnapshot;
+			return engineModuleSnapshot;
 		}
 	}
 }
