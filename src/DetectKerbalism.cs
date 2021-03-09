@@ -40,18 +40,12 @@ namespace KerbalismSystemHeat
 						new DialogGUIFlexibleSpace(),
 						new DialogGUIHorizontalLayout(
 							new DialogGUIFlexibleSpace(),
-		                    new DialogGUIButton(Localizer.Format("#LOC_KerbalistSystemHeat_Quit"), Application.Quit, 140.0f, 30.0f, true),
-		                    new DialogGUIButton(Localizer.Format("#LOC_KerbalistSystemHeat_Continue"), delegate () { }, 140.0f, 30.0f, true),
+							new DialogGUIButton(Localizer.Format("#LOC_KerbalistSystemHeat_Quit"), Application.Quit, 140.0f, 30.0f, true),
 							new DialogGUIFlexibleSpace()
 						)
 					),
 					true,
 					HighLogic.UISkin);
-			}
-			else
-			{
-				KerbalismAPI.KerbalismFound = true;
-				KerbalismAPI.Init();
 			}
 		}
 	}

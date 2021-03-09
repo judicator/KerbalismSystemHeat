@@ -1,6 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using KSP.Localization;
+using KERBALISM;
 using SystemHeat;
 
 namespace KerbalismSystemHeat
@@ -10,6 +11,11 @@ namespace KerbalismSystemHeat
 		// This should correspond to the related ModuleSystemHeatFissionReactor
 		[KSPField(isPersistant = true)]
 		public string reactorModuleID;
+
+		[KSPField(isPersistant = true)]
+		public float MaxECGeneration = 0f;
+		[KSPField(isPersistant = true)]
+		public float MinECGeneration = 0f;
 
 		protected static string reactorModuleName = "ModuleSystemHeatFissionReactor";
 		protected ModuleSystemHeatFissionReactor reactorModule;
@@ -38,6 +44,15 @@ namespace KerbalismSystemHeat
 		{
 			base.OnLoad(node);
 			ParseResourcesList(part);
+		}
+
+		public virtual void FixedUpdate()
+		{
+			if (!reactorModule && HighLogic.LoadedSceneIsFlight)
+			{
+				MaxECGeneration = reactorModule.ElectricalGeneration.Evaluate(100f) * reactorModule.CoreIntegrity / 100f;
+				MinECGeneration = reactorModule.ElectricalGeneration.Evaluate(reactorModule.MinimumThrottle);
+			}
 		}
 
 		// Fetch input/output resources list from reactor ConfigNode
@@ -105,44 +120,81 @@ namespace KerbalismSystemHeat
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
-			ProtoPartModuleSnapshot reactorModuleSnapshot = FindReactorModuleSnapshot(part_snapshot, Proto.GetString(module_snapshot, "reactorModuleID"));
-			if (reactorModuleSnapshot != null)
+			ProtoPartModuleSnapshot reactor = FindReactorSnapshot(part_snapshot);
+			if (reactor != null)
 			{
 				string title = "fission reactor";
-
-				if (Proto.GetBool(reactorModuleSnapshot, "Enabled"))
+				if (Lib.Proto.GetBool(reactor, "Enabled"))
 				{
-					float curECGeneration = Proto.GetFloat(reactorModuleSnapshot, "CurrentElectricalGeneration");
-					float fuelThrottle = Proto.GetFloat(reactorModuleSnapshot, "CurrentReactorThrottle") / 100f;
-					// Resources generation/consumption according to reactor throttle parameter
-					if (curECGeneration > 0)
-					{
-						resourceChangeRequest.Add(new KeyValuePair<string, double>("ElectricCharge", curECGeneration));
-					}
-					if (fuelThrottle > 0)
-					{
-						try
-						{
-							(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).ParseResourcesList(proto_part);
-							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
-							{
-								resourceChangeRequest.Add(new KeyValuePair<string, double>(ratio.ResourceName, -fuelThrottle * ratio.Ratio));
-							}
-							foreach (ResourceRatio ratio in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).outputs)
-							{
-								resourceChangeRequest.Add(new KeyValuePair<string, double>(ratio.ResourceName, fuelThrottle * ratio.Ratio));
-							}
+					float maxGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
+					float minGeneration = Lib.Proto.GetFloat(module_snapshot, "MinECGeneration");
+					float curECGeneration = Lib.Proto.GetFloat(reactor, "CurrentElectricalGeneration");
+					float fuelThrottle = Lib.Proto.GetFloat(reactor, "CurrentReactorThrottle") / 100f;
+					double ecToGenerate = curECGeneration;
+					if (!Lib.Proto.GetBool(reactor, "ManualControl") && maxGeneration > 0f)
+                    {
+						ecToGenerate = KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Capacity - KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Amount;
+						ecToGenerate -= KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Deferred;
+						if (elapsed_s > 0)
+                        {
+							ecToGenerate /= elapsed_s;
 						}
-						catch (Exception e)
+						if (ecToGenerate < minGeneration)
+                        {
+							ecToGenerate = minGeneration;
+						}
+						else
 						{
-							Utils.LogError($"[{proto_part}] Cannot parse ModuleSystemHeatFissionReactor resource list: {e}.");
+							ecToGenerate = Lib.Clamp(ecToGenerate, (double)minGeneration, ecToGenerate);
+						}
+						if (ecToGenerate != curECGeneration)
+                        {
+							Lib.Proto.Set(reactor, "CurrentElectricalGeneration", (float) ecToGenerate);
+						}
+						double ff = ecToGenerate / maxGeneration;
+						if (ff != fuelThrottle)
+						{
+							fuelThrottle = (float) ff;
+							Lib.Proto.Set(reactor, "CurrentReactorThrottle", fuelThrottle * 100f);
+						}
+					}
+					// Resources generation/consumption according to reactor throttle parameter
+					if (ecToGenerate > 0)
+					{
+						string OutputFullResName;
+						if (!(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).resourcesListParsed)
+                        {
+							(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).ParseResourcesList(proto_part);
+						}
+						foreach (ResourceRatio res in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
+						{
+							resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -fuelThrottle * res.Ratio));
+						}
+						foreach (ResourceRatio res in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).outputs)
+						{
+							double resCapacityLeft = KERBALISM.ResourceCache.GetResource(v, res.ResourceName).Capacity - KERBALISM.ResourceCache.GetResource(v, res.ResourceName).Amount;
+							if (fuelThrottle * res.Ratio * elapsed_s >= resCapacityLeft)
+							{
+								OutputFullResName = res.ResourceName;
+							}
+							resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, fuelThrottle * res.Ratio));
+						}
+						resourceChangeRequest.Add(new KeyValuePair<string, double>("ElectricCharge", ecToGenerate));
+						// if any of output resources storage is full, show warning and shutdown reactor
+						if (OutputFullResName != null)
+						{
+							Message.Post(
+								Severity.warning, 
+								Localizer.Format(("#LOC_KerbalistSystemHeat_ReactorOutputResourceFull"), part_snapshot.partName, v.GetDisplayName(), OutputFullResName)
+							);
+							Lib.Proto.Set(reactor, "Enabled", false);
 						}
 					}
 				}
 				// Set LastUpdate to current time - this is done to prevent double resources consumption
 				// Background resource consumption is already handled earlier in this method,
 				// no need to do it again on craft activation in ModuleSystemHeatFissionReactor.DoCatchup()
-				Proto.Set(reactorModuleSnapshot, "LastUpdateTime", Planetarium.GetUniversalTime());
+				Lib.Proto.Set(reactor, "LastUpdateTime", Planetarium.GetUniversalTime());
 				return title;
 			}
 			return "ERR: no reactor";
@@ -155,39 +207,33 @@ namespace KerbalismSystemHeat
 
 			if (reactor == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionReactor named {moduleName} was found, using first instance");
+				KSHUtils.LogError($"[{part}] No ModuleSystemHeatFissionReactor named {moduleName} was found, using first instance.");
 				reactorModule = part.GetComponents<ModuleSystemHeatFissionReactor>().ToList().First();
 			}
 			if (reactor == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionReactor was found.");
+				KSHUtils.LogError($"[{part}] No ModuleSystemHeatFissionReactor was found.");
 			}
 			return reactor;
 		}
 
-		// Find associated Reactor module snapshot (used for unloaded vessels as they only have Modules snapshots)
-		protected static ProtoPartModuleSnapshot FindReactorModuleSnapshot(ProtoPartSnapshot part_snapshot, string moduleName)
+		// Find PartModule snapshot (used for unloaded vessels as they only have Modules snapshots)
+		protected static ProtoPartModuleSnapshot FindReactorSnapshot(ProtoPartSnapshot p)
 		{
-			ProtoPartModuleSnapshot reactorModuleSnapshot = null;
-			for (int i = 0; i < part_snapshot.modules.Count; i++)
+			ProtoPartModuleSnapshot m = null;
+			for (int i = 0; i < p.modules.Count; i++)
 			{
-				if (part_snapshot.modules[i].moduleName == reactorModuleName)
+				if (p.modules[i].moduleName == reactorModuleName)
 				{
-					if (part_snapshot.modules[i].moduleValues.GetValue("moduleID") == moduleName)
-					{
-						reactorModuleSnapshot = part_snapshot.modules[i];
-					}
+					m = p.modules[i];
+					break;
 				}
 			}
-			if (reactorModuleSnapshot == null)
+			if (m == null)
 			{
-				reactorModuleSnapshot = part_snapshot.FindModule(reactorModuleName);
+				KSHUtils.LogError($" Part [{p.partName}] No {reactorModuleName} was found in part snapshot.");
 			}
-			if (reactorModuleSnapshot == null)
-			{
-				Utils.LogError($"[{part_snapshot.partName}] No {reactorModuleName} was found in Part Snapshot.");
-			}
-			return reactorModuleSnapshot;
+			return m;
 		}
 	}
 }

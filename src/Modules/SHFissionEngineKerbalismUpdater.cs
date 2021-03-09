@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KERBALISM;
 using SystemHeat;
 
 namespace KerbalismSystemHeat
@@ -105,15 +106,15 @@ namespace KerbalismSystemHeat
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
-			ProtoPartModuleSnapshot engineModuleSnapshot = FindEngineModuleSnapshot(part_snapshot, Proto.GetString(module_snapshot, "engineModuleID"));
+			ProtoPartModuleSnapshot engineModuleSnapshot = FindEngineModuleSnapshot(part_snapshot, Lib.Proto.GetString(module_snapshot, "engineModuleID"));
 			if (engineModuleSnapshot != null)
 			{
 				string title = "fission engine";
 
-				if (Proto.GetBool(engineModuleSnapshot, "Enabled"))
+				if (Lib.Proto.GetBool(engineModuleSnapshot, "Enabled"))
 				{
-					float curECGeneration = Proto.GetFloat(engineModuleSnapshot, "CurrentElectricalGeneration");
-					float fuelThrottle = Proto.GetFloat(engineModuleSnapshot, "CurrentReactorThrottle") / 100f;
+					float curECGeneration = Lib.Proto.GetFloat(engineModuleSnapshot, "CurrentElectricalGeneration");
+					float fuelThrottle = Lib.Proto.GetFloat(engineModuleSnapshot, "CurrentReactorThrottle") / 100f;
 					// Resources generation/consumption according to engine throttle parameter
 					if (curECGeneration > 0)
 					{
@@ -135,14 +136,14 @@ namespace KerbalismSystemHeat
 						}
 						catch (Exception e)
 						{
-							Utils.LogError($"[{proto_part}] Cannot parse ModuleSystemHeatFissionEngine resource list: {e}.");
+							KSHUtils.LogError($"[{proto_part}] Cannot parse ModuleSystemHeatFissionEngine resource list: {e}.");
 						}
 					}
 				}
 				// Set LastUpdate to current time - this is done to prevent double resources consumption
 				// Background resource consumption is already handled earlier in this method,
 				// no need to do it again on craft activation in ModuleSystemHeatFissionEngine.DoCatchup()
-				Proto.Set(engineModuleSnapshot, "LastUpdateTime", Planetarium.GetUniversalTime());
+				Lib.Proto.Set(engineModuleSnapshot, "LastUpdateTime", Planetarium.GetUniversalTime());
 				return title;
 			}
 			return "ERR: no engine";
@@ -155,12 +156,12 @@ namespace KerbalismSystemHeat
 
 			if (engine == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionEngine named {moduleName} was found, using first instance");
+				KSHUtils.LogError($"[{part}] No ModuleSystemHeatFissionEngine named {moduleName} was found, using first instance");
 				engineModule = part.GetComponents<ModuleSystemHeatFissionEngine>().ToList().First();
 			}
 			if (engine == null)
 			{
-				Utils.LogError($"[{part}] No ModuleSystemHeatFissionEngine was found.");
+				KSHUtils.LogError($"[{part}] No ModuleSystemHeatFissionEngine was found.");
 			}
 			return engine;
 		}
@@ -185,7 +186,7 @@ namespace KerbalismSystemHeat
 			}
 			if (engineModuleSnapshot == null)
 			{
-				Utils.LogError($"[{part_snapshot.partName}] No {engineModuleName} was found in Part Snapshot.");
+				KSHUtils.LogError($"[{part_snapshot.partName}] No {engineModuleName} was found in Part Snapshot.");
 			}
 			return engineModuleSnapshot;
 		}

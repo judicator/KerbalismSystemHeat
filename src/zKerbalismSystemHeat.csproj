@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>KerbalismSystemHeat</RootNamespace>
-    <AssemblyName>KerbalismSystemHeat</AssemblyName>
+    <AssemblyName>zKerbalismSystemHeat</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -88,14 +88,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DetectKerbalism.cs" />
-    <Compile Include="KerbalismAPI.cs" />
-    <Compile Include="Lib.cs" />
     <Compile Include="Modules\SHConverterKerbalism.cs" />
     <Compile Include="Modules\SHFissionEngineKerbalismUpdater.cs" />
     <Compile Include="Modules\SHFissionReactorKerbalismUpdater.cs" />
     <Compile Include="Modules\SHHarvesterKerbalism.cs" />
     <Compile Include="Modules\SHRadiatorKerbalism.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
@@ -103,7 +102,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(ProjectName).dll" "d:\KSP 1.8.1 - test\GameData\KerbalismSystemHeat\Plugins\KerbalismSystemHeat.dll"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(ProjectName).dll" "d:\KSP 1.8.1 - test\GameData\zKerbalismSystemHeat\Plugins\zKerbalismSystemHeat.dll"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

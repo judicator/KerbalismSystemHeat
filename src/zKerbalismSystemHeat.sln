@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KerbalismSystemHeat", "KerbalismSystemHeat.csproj", "{1C84F8C1-7C2D-4220-98B1-7B3E0EE8416C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zKerbalismSystemHeat", "zKerbalismSystemHeat.csproj", "{1C84F8C1-7C2D-4220-98B1-7B3E0EE8416C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +20,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {04DD16A0-163F-4618-99EE-EE619DAA5CE0}
+		SolutionGuid = {B3B91C7F-1ACF-4CA2-96EC-388225327D8F}
 	EndGlobalSection
 EndGlobal
