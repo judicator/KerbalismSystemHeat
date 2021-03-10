@@ -8,7 +8,7 @@ namespace KerbalismSystemHeat
 	{
 		// In the editor, allow the user to tweak the abundance for simulation purposes
 		[UI_FloatRange(scene = UI_Scene.Editor, minValue = 0f, maxValue = 1f, stepIncrement = 0.01f)]
-		[KSPField(isPersistant = true, guiActiveEditor = true, guiName = "#LOC_KerbalistSystemHeat_SimulatedResourceAbundance")]
+		[KSPField(isPersistant = true, guiActiveEditor = true, guiName = "#LOC_KerbalismSystemHeat_SimulatedResourceAbundance")]
 		public float simulatedAbundance = 0.1f;
 
 		[KSPField(isPersistant = true)]
@@ -32,15 +32,23 @@ namespace KerbalismSystemHeat
 			{
 				inputListClone.Add(res);
 			}
+			if (heatModule != null)
+			{
+				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
+			}
 		}
 
 		// Estimate resources production/consumption for Kerbalism planner
 		// This will be called by Kerbalism in the editor (VAB/SPH), possibly several times after a change to the vessel
 		public string PlannerUpdate(List<KeyValuePair<string, double>> resourceChangeRequest, CelestialBody body, Dictionary<string, double> environment)
 		{
-			if (heatModule != null)
+			if (heatModule != null && simulatedAbundance >= HarvestThreshold)
 			{
-				ResUpdate(resourceChangeRequest, simulatedAbundance);
+				foreach (ResourceRatio res in inputList)
+				{
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
+				}
+				resourceChangeRequest.Add(new KeyValuePair<string, double>(ResourceName, Efficiency * systemHeatEfficiency * simulatedAbundance));
 			}
 			return "harvester";
 		}
@@ -50,23 +58,13 @@ namespace KerbalismSystemHeat
 		{
 			if (IsActivated && heatModule != null && canHarvest)
 			{
-				double abundance = KSHUtils.SampleResourceAbundance(vessel, this);
-				calculatedAbundance = (float) abundance;
-				ResUpdate(resourceChangeRequest, abundance);
+				calculatedAbundance = (float) KSHUtils.SampleResourceAbundance(vessel, this);
+				if (calculatedAbundance >= HarvestThreshold)
+                {
+					ResUpdate(vessel, inputList, ResourceName, Efficiency, systemHeatEfficiency, calculatedAbundance, TimeWarp.fixedDeltaTime);
+				}
 			}
 			return "harvester";
-		}
-
-		private void ResUpdate(List<KeyValuePair<string, double>> resourceChangeRequest, double resAbundance)
-        {
-			foreach (ResourceRatio res in inputList)
-			{
-				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
-			}
-			if (resAbundance >= HarvestThreshold)
-			{
-				resourceChangeRequest.Add(new KeyValuePair<string, double>(ResourceName, Efficiency * systemHeatEfficiency * resAbundance));
-			}
 		}
 
 		// Simulate resources production/consumption for unloaded vessel
@@ -76,22 +74,34 @@ namespace KerbalismSystemHeat
 			if (Lib.Proto.GetBool(module_snapshot, "IsActivated") && Lib.Proto.GetBool(module_snapshot, "canHarvest"))
 			{
 				double abundance = Lib.Proto.GetFloat(module_snapshot, "calculatedAbundance");
-				string resName = Lib.Proto.GetString(module_snapshot, "ResourceName");
-
 				if (abundance >= Lib.Proto.GetFloat(module_snapshot, "HarvestThreshold"))
 				{
 					float systemHeatEfficiency = Lib.Proto.GetFloat(module_snapshot, "systemHeatEfficiency");
+					string resName = Lib.Proto.GetString(module_snapshot, "ResourceName");
 					float Efficiency = Lib.Proto.GetFloat(module_snapshot, "Efficiency");
-					foreach (ResourceRatio res in (proto_part_module as SystemHeatHarvesterKerbalism).inputList)
-					{
-						resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
-					}
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(resName, Efficiency * systemHeatEfficiency * abundance));
+					ResUpdate(v,
+						(proto_part_module as SystemHeatHarvesterKerbalism).inputList,
+						resName,
+						Efficiency,
+						systemHeatEfficiency,
+						abundance,
+						elapsed_s);
 				}
 			}
 			// undo stock behavior by forcing last_update_time to now
 			Lib.Proto.Set(module_snapshot, "lastUpdateTime", Planetarium.GetUniversalTime());
 			return "converter";
+		}
+
+		private static void ResUpdate(Vessel v, List<ResourceRatio> inputList, string ResourceName, float Efficiency, float systemHeatEfficiency, double abundance, double elapsed_s)
+		{
+			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.Harvester);
+			foreach (ResourceRatio ir in inputList)
+			{
+				recipe.AddInput(ir.ResourceName, ir.Ratio * elapsed_s);
+			}
+			recipe.AddOutput(ResourceName, Efficiency * systemHeatEfficiency * abundance * elapsed_s, dump: true);
+			KERBALISM.ResourceCache.Get(v).AddRecipe(recipe);
 		}
 
 		public override void FixedUpdate()
@@ -103,7 +113,7 @@ namespace KerbalismSystemHeat
 			base.FixedUpdate();
 			inputList = inputListClone;
 			Efficiency = eff;
-			if (!HighLogic.LoadedSceneIsEditor)
+			if (HighLogic.LoadedSceneIsFlight)
 			{
 				canHarvest = CanHarvest();
 			}

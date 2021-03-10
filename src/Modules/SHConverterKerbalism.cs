@@ -25,6 +25,10 @@ namespace KerbalismSystemHeat
 			{
 				outputListClone.Add(res);
 			}
+			if (heatModule != null)
+			{
+				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
+			}
 		}
 
 		// Estimate resources production/consumption for Kerbalism planner
@@ -33,7 +37,15 @@ namespace KerbalismSystemHeat
 		{
 			if (heatModule != null)
 			{
-				ResUpdate(resourceChangeRequest);
+				float efficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
+				foreach (ResourceRatio res in inputList)
+				{
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
+				}
+				foreach (ResourceRatio res in outputList)
+				{
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * efficiency));
+				}
 			}
 			return "converter";
 		}
@@ -43,22 +55,9 @@ namespace KerbalismSystemHeat
 		{
 			if ((heatModule != null) && IsActivated)
 			{
-				ResUpdate(resourceChangeRequest);
+				ResUpdate(vessel, inputList, outputList, systemHeatEfficiency, TimeWarp.fixedDeltaTime);
 			}
 			return "converter";
-		}
-
-		private void ResUpdate(List<KeyValuePair<string, double>> resourceChangeRequest)
-        {
-			float efficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
-			foreach (ResourceRatio res in inputList)
-			{
-				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
-			}
-			foreach (ResourceRatio res in outputList)
-			{
-				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * efficiency));
-			}
 		}
 
 		// Simulate resources production/consumption for unloaded vessel
@@ -73,19 +72,29 @@ namespace KerbalismSystemHeat
 			if (Lib.Proto.GetBool(module_snapshot, "IsActivated"))
 			{
 				float SHEfficiency = Lib.Proto.GetFloat(module_snapshot, "systemHeatEfficiency");
-
-				foreach (ResourceRatio res in (proto_part_module as SystemHeatConverterKerbalism).inputList)
-				{
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
-				}
-				foreach (ResourceRatio res in (proto_part_module as SystemHeatConverterKerbalism).outputList)
-				{
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * SHEfficiency));
-				}
+				ResUpdate(v,
+					(proto_part_module as SystemHeatConverterKerbalism).inputList,
+					(proto_part_module as SystemHeatConverterKerbalism).outputList,
+					SHEfficiency,
+					elapsed_s);
 			}
 			// undo stock behavior by forcing last_update_time to now
 			Lib.Proto.Set(module_snapshot, "lastUpdateTime", Planetarium.GetUniversalTime());
 			return "converter";
+		}
+
+		private static void ResUpdate(Vessel v, List<ResourceRatio> inputList, List<ResourceRatio> outputList, float systemHeatEfficiency, double elapsed_s)
+		{
+			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.StockConverter);
+			foreach (ResourceRatio ir in inputList)
+			{
+				recipe.AddInput(ir.ResourceName, ir.Ratio * elapsed_s);
+			}
+			foreach (ResourceRatio or in outputList)
+			{
+				recipe.AddOutput(or.ResourceName, or.Ratio * systemHeatEfficiency * elapsed_s, or.DumpExcess);
+			}
+			KERBALISM.ResourceCache.Get(v).AddRecipe(recipe);
 		}
 
 		public override void FixedUpdate()

@@ -131,10 +131,11 @@ namespace KerbalismSystemHeat
 					float curECGeneration = Lib.Proto.GetFloat(reactor, "CurrentElectricalGeneration");
 					float fuelThrottle = Lib.Proto.GetFloat(reactor, "CurrentReactorThrottle") / 100f;
 					double ecToGenerate = curECGeneration;
+					VesselResources resources = KERBALISM.ResourceCache.Get(v);
 					if (!Lib.Proto.GetBool(reactor, "ManualControl") && maxGeneration > 0f)
                     {
-						ecToGenerate = KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Capacity - KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Amount;
-						ecToGenerate -= KERBALISM.ResourceCache.GetResource(v, "ElectricCharge").Deferred;
+						ecToGenerate = resources.GetResource(v, "ElectricCharge").Capacity - resources.GetResource(v, "ElectricCharge").Amount;
+						ecToGenerate -= resources.GetResource(v, "ElectricCharge").Deferred;
 						if (elapsed_s > 0)
                         {
 							ecToGenerate /= elapsed_s;
@@ -161,32 +162,42 @@ namespace KerbalismSystemHeat
 					// Resources generation/consumption according to reactor throttle parameter
 					if (ecToGenerate > 0)
 					{
-						string OutputFullResName;
 						if (!(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).resourcesListParsed)
                         {
 							(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).ParseResourcesList(proto_part);
 						}
-						foreach (ResourceRatio res in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
+						string brokerName = "SHFissionReactor";
+						string brokerTitle = "#LOC_KerbalismSystemHeat_Brokers_FissionReactor";
+						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, Localizer.Format(brokerTitle)));
+						bool NeedToStopReactor = false;
+						foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
 						{
-							resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -fuelThrottle * res.Ratio));
-						}
-						foreach (ResourceRatio res in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).outputs)
-						{
-							double resCapacityLeft = KERBALISM.ResourceCache.GetResource(v, res.ResourceName).Capacity - KERBALISM.ResourceCache.GetResource(v, res.ResourceName).Amount;
-							if (fuelThrottle * res.Ratio * elapsed_s >= resCapacityLeft)
-							{
-								OutputFullResName = res.ResourceName;
+							recipe.AddInput(ir.ResourceName, ir.Ratio * fuelThrottle * elapsed_s);
+							if (resources.GetResource(v, ir.ResourceName).Amount < double.Epsilon)
+                            {
+								// Input resource amount is zero - stop reactor
+								NeedToStopReactor = true;
 							}
-							resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, fuelThrottle * res.Ratio));
 						}
-						resourceChangeRequest.Add(new KeyValuePair<string, double>("ElectricCharge", ecToGenerate));
-						// if any of output resources storage is full, show warning and shutdown reactor
-						if (OutputFullResName != null)
+						foreach (ResourceRatio or in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).outputs)
 						{
-							Message.Post(
-								Severity.warning, 
-								Localizer.Format(("#LOC_KerbalistSystemHeat_ReactorOutputResourceFull"), part_snapshot.partName, v.GetDisplayName(), OutputFullResName)
-							);
+							recipe.AddOutput(or.ResourceName, or.Ratio * fuelThrottle * elapsed_s, dump: false);
+							if (1 - resources.GetResource(v, or.ResourceName).Level < double.Epsilon)
+							{
+								// Output resource is at full capacity
+								NeedToStopReactor = true;
+								Message.Post(
+									Severity.warning,
+									Localizer.Format(("#LOC_KerbalismSystemHeat_ReactorOutputResourceFull"), or.ResourceName, v.GetDisplayName(), part_snapshot.partName)
+								);
+							}
+						}
+						recipe.AddOutput("ElectricCharge", ecToGenerate * elapsed_s, dump: true);
+						resources.AddRecipe(recipe);
+
+						// Disable reactor
+						if (NeedToStopReactor)
+						{
 							Lib.Proto.Set(reactor, "Enabled", false);
 						}
 					}

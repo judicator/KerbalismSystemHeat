@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 using KSP.Localization;
 
@@ -40,7 +41,7 @@ namespace KerbalismSystemHeat
 						new DialogGUIFlexibleSpace(),
 						new DialogGUIHorizontalLayout(
 							new DialogGUIFlexibleSpace(),
-							new DialogGUIButton(Localizer.Format("#LOC_KerbalistSystemHeat_Quit"), Application.Quit, 140.0f, 30.0f, true),
+							new DialogGUIButton(Localizer.Format("#LOC_KerbalismSystemHeat_Quit"), Application.Quit, 140.0f, 30.0f, true),
 							new DialogGUIFlexibleSpace()
 						)
 					),
