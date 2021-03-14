@@ -13,7 +13,7 @@ Radiators EC consumption for active and unloaded vessels, Kerbalism planner supp
 Activated converters input resources consumption/output resources production for active and unloaded vessels, partial Kerbalism planner support.
 
 * Harvesters  
-EC consumption/harvested resource production for active and unloaded vessels, partial Kerbalism planner support. Simulated abundance param add to PAW menu in editor for player convenience
+EC consumption/harvested resource production for active and unloaded vessels, partial Kerbalism planner support. Simulated abundance param added to PAW menu in editor for player convenience.
 
 * Fission Reactors  
 EC and output resource production/input resource consumption for unloaded vessels. Partial Kerbalism planner support.
