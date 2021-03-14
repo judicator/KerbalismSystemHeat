@@ -8,6 +8,9 @@ namespace KerbalismSystemHeat
 {
 	public class SystemHeatFissionReactorKerbalismUpdater : PartModule
 	{
+		public static string brokerName = "SHFissionReactor";
+		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_FissionReactor");
+
 		// This should correspond to the related ModuleSystemHeatFissionReactor
 		[KSPField(isPersistant = true)]
 		public string reactorModuleID;
@@ -91,7 +94,7 @@ namespace KerbalismSystemHeat
 		{
 			if (reactorModule != null)
 			{
-				string title = "fission reactor";
+				string title = brokerTitle;
 
 				float curECGeneration = reactorModule.ElectricalGeneration.Evaluate(reactorModule.CurrentReactorThrottle);
 				if (curECGeneration > 0)
@@ -123,7 +126,7 @@ namespace KerbalismSystemHeat
 			ProtoPartModuleSnapshot reactor = FindReactorSnapshot(part_snapshot);
 			if (reactor != null)
 			{
-				string title = "fission reactor";
+				string title = brokerTitle;
 				if (Lib.Proto.GetBool(reactor, "Enabled"))
 				{
 					float maxGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
@@ -166,9 +169,7 @@ namespace KerbalismSystemHeat
                         {
 							(proto_part_module as SystemHeatFissionReactorKerbalismUpdater).ParseResourcesList(proto_part);
 						}
-						string brokerName = "SHFissionReactor";
-						string brokerTitle = "#LOC_KerbalismSystemHeat_Brokers_FissionReactor";
-						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, Localizer.Format(brokerTitle)));
+						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, brokerTitle));
 						bool NeedToStopReactor = false;
 						foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionReactorKerbalismUpdater).inputs)
 						{

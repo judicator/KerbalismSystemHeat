@@ -8,6 +8,9 @@ namespace KerbalismSystemHeat
 {
 	public class SystemHeatFissionEngineKerbalismUpdater : PartModule
 	{
+		public static string brokerName = "SHFissionEngine";
+		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_FissionEngine");
+
 		// This should correspond to the related ModuleSystemHeatFissionReactor
 		[KSPField(isPersistant = true)]
 		public string engineModuleID;
@@ -91,7 +94,7 @@ namespace KerbalismSystemHeat
 		{
 			if (engineModule != null)
 			{
-				string title = "fission engine";
+				string title = brokerTitle;
 
 				float curECGeneration = engineModule.ElectricalGeneration.Evaluate(engineModule.CurrentReactorThrottle);
 				if (curECGeneration > 0)
@@ -117,14 +120,13 @@ namespace KerbalismSystemHeat
 			return "ERR: no engine";
 		}
 
-
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
 			ProtoPartModuleSnapshot reactor = FindEngineSnapshot(part_snapshot);
 			if (reactor != null)
 			{
-				string title = "fission engine";
+				string title = brokerTitle;
 				if (Lib.Proto.GetBool(reactor, "Enabled") && Lib.Proto.GetBool(reactor, "GeneratesElectricity"))
 				{
 					float maxGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
@@ -167,9 +169,7 @@ namespace KerbalismSystemHeat
 						{
 							(proto_part_module as SystemHeatFissionEngineKerbalismUpdater).ParseResourcesList(proto_part);
 						}
-						string brokerName = "SHFissionEngine";
-						string brokerTitle = "#LOC_KerbalismSystemHeat_Brokers_FissionEngine";
-						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, Localizer.Format(brokerTitle)));
+						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, brokerTitle));
 						bool NeedToStopReactor = false;
 						foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
 						{

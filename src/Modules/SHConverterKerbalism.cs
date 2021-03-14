@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KERBALISM;
 using SystemHeat;
@@ -11,6 +12,16 @@ namespace KerbalismSystemHeat
 
 		public List<ResourceRatio> inputListClone;
 		public List<ResourceRatio> outputListClone;
+
+		private DateTime lastPlannerUIUpdate = DateTime.UtcNow;
+
+		[KSPEvent(guiActive = false, guiName = "Toggle", guiActiveEditor = true, active = true)]
+		public new void ToggleEditorThermalSim()
+		{
+			editorThermalSim = !editorThermalSim;
+			// Update Kerbalism planner UI
+			if (Lib.IsEditor())	GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+		}
 
 		public override void OnLoad(ConfigNode node)
 		{
@@ -35,16 +46,15 @@ namespace KerbalismSystemHeat
 		// This will be called by Kerbalism in the editor (VAB/SPH), possibly several times after a change to the vessel
 		public string PlannerUpdate(List<KeyValuePair<string, double>> resourceChangeRequest, CelestialBody body, Dictionary<string, double> environment)
 		{
-			if (heatModule != null)
+			if (heatModule != null && editorThermalSim)
 			{
-				float efficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
 				foreach (ResourceRatio res in inputList)
 				{
 					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, -res.Ratio));
 				}
 				foreach (ResourceRatio res in outputList)
 				{
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * efficiency));
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * systemHeatEfficiency));
 				}
 			}
 			return "converter";
@@ -76,7 +86,8 @@ namespace KerbalismSystemHeat
 					(proto_part_module as SystemHeatConverterKerbalism).inputList,
 					(proto_part_module as SystemHeatConverterKerbalism).outputList,
 					SHEfficiency,
-					elapsed_s);
+					elapsed_s
+					);
 			}
 			// undo stock behavior by forcing last_update_time to now
 			Lib.Proto.Set(module_snapshot, "lastUpdateTime", Planetarium.GetUniversalTime());
@@ -85,7 +96,7 @@ namespace KerbalismSystemHeat
 
 		private static void ResUpdate(Vessel v, List<ResourceRatio> inputList, List<ResourceRatio> outputList, float systemHeatEfficiency, double elapsed_s)
 		{
-			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.StockConverter);
+			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate("SHConverter", KERBALISM.ResourceBroker.BrokerCategory.Converter, "converter"));
 			foreach (ResourceRatio ir in inputList)
 			{
 				recipe.AddInput(ir.ResourceName, ir.Ratio * elapsed_s);
@@ -107,6 +118,14 @@ namespace KerbalismSystemHeat
 			if (heatModule != null)
 			{
 				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
+			}
+			DateTime timeStamp = DateTime.UtcNow;
+			// Update Kerbalism planner UI twice a second if thermal simulation is on
+			if (Lib.IsEditor() && editorThermalSim && (timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= 500.0)
+			{
+				lastPlannerUIUpdate = timeStamp;
+				UI.Update(Kerbalism.Callbacks.visible);
+				UI.On_gui(Kerbalism.Callbacks.visible);
 			}
 		}
 	}

@@ -1,25 +1,44 @@
 # Kerbalism SystemHeat
 
 Experimental SystemHeat support for Kerbalism.
-As of now, it includes support for ModuleSystemHeatFissionReactor for Kerbalism planner (in VAB/Hangar) and background processing for unloaded vessels.
 
-* [Dependencies](#dependencies)
-* [Installation](#installation)
-* [License](#licensing)
+Important notice: this mod does not touch heat simulation in any manner.
+
+It does, however, support Kerbalism resource production/consumption system for following SystemHeat partmodules:
+
+* Radiators  
+Radiators EC consumption for active and unloaded vessels, Kerbalism planner support.
+
+* Converters  
+Activated converters input resources consumption/output resources production for active and unloaded vessels, partial Kerbalism planner support.
+
+* Harvesters  
+EC consumption/harvested resource production for active and unloaded vessels, partial Kerbalism planner support. Simulated abundance param add to PAW menu in editor for player convenience
+
+* Fission Reactors  
+EC and output resource production/input resource consumption for unloaded vessels. Partial Kerbalism planner support.
+
+* Fission Engines (ones producing EC)  
+EC and output resource production/input resource consumption for unloaded vessels. Partial Kerbalism planner support.
 
 
 ## Dependencies
 
-* Kerbalism
-* NearFutureElectrical (specifically, fission reactors)
-* SystemHeat
+* [Kerbalism (3.12)](https://github.com/Kerbalism/Kerbalism)
+* [SystemHeat (0.3.10)](https://github.com/post-kerbin-mining-corporation/SystemHeat)
 * SystemHeatFissionReactors (from SystemHeat/Extras)
-* Module manager
+* SystemHeatFissionEngines (from SystemHeat/Extras)
+* [Module manager (last version preferred)](https://github.com/sarbian/ModuleManager)
+
+
+## Mods support
+
+* [USI Core](https://github.com/UmbraSpaceIndustries/USI_Core) - USI reactors will be switched to SystemHeat modules
 
 
 ## Installation
 
-To install, place the GameData folder inside your Kerbal Space Program folder. If asked to overwrite files, please do so.
+Please remove mod folders (zKerbalismSystemHeat or KerbalismSystemHeat) from GameData folder inside your Kerbal Space Program folder before installation. Then place the GameData folder from downloaded archive inside your Kerbal Space Program folder.
 
 
 ## Licensing
