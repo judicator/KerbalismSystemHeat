@@ -1,6 +1,6 @@
 # Kerbalism SystemHeat
 
-Experimental SystemHeat support for Kerbalism.
+Experimental Kerbalism support for SystemHeat.
 
 Important notice: this mod does not touch heat simulation in any manner.
 
