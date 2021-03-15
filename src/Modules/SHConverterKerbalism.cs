@@ -1,19 +1,27 @@
 using System;
 using System.Collections.Generic;
+using KSP.Localization;
 using KERBALISM;
+using KERBALISM.Planner;
 using SystemHeat;
 
 namespace KerbalismSystemHeat
 {
 	public class SystemHeatConverterKerbalism: ModuleSystemHeatConverter
 	{
+		public static string brokerName = "SHConverter";
+		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_Converter");
+
+		private DateTime lastPlannerUIUpdate = DateTime.UtcNow;
+
+		// Kerbalism planner UI update will be called every plannerUIUpdateDelay ms if thermal simulation is on
+		const double plannerUIUpdateDelay = 500.0;
+
 		[KSPField(isPersistant = true)]
 		public float systemHeatEfficiency = 0f;
 
 		public List<ResourceRatio> inputListClone;
 		public List<ResourceRatio> outputListClone;
-
-		private DateTime lastPlannerUIUpdate = DateTime.UtcNow;
 
 		[KSPEvent(guiActive = false, guiName = "Toggle", guiActiveEditor = true, active = true)]
 		public new void ToggleEditorThermalSim()
@@ -28,7 +36,7 @@ namespace KerbalismSystemHeat
 			base.OnLoad(node);
 			inputListClone = new List<ResourceRatio>();
 			foreach (ResourceRatio res in inputList)
-            {
+			{
 				inputListClone.Add(res);
 			}
 			outputListClone = new List<ResourceRatio>();
@@ -57,7 +65,7 @@ namespace KerbalismSystemHeat
 					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.ResourceName, res.Ratio * systemHeatEfficiency));
 				}
 			}
-			return "converter";
+			return brokerTitle;
 		}
 
 		// Calculate resources production/consumption for active vessel
@@ -67,13 +75,13 @@ namespace KerbalismSystemHeat
 			{
 				ResUpdate(vessel, inputList, outputList, systemHeatEfficiency, TimeWarp.fixedDeltaTime);
 			}
-			return "converter";
+			return brokerTitle;
 		}
 
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
-			// note: ignore stock temperature mechanic of converters, but calculate effiency based on last calculated SystemHeat loop temperature
+			// note: ignore temperature mechanic of converters, but calculate effiency based on last calculated SystemHeat loop temperature
 			// note: ignore auto shutdown
 			// note: non-mandatory resources 'dynamically scale the ratios', that is exactly what mandatory resources do too (DERP ALERT)
 			// note: 'undo' stock behavior by forcing lastUpdateTime to now (to minimize overlapping calculations from this and stock post-facto simulation)
@@ -91,12 +99,12 @@ namespace KerbalismSystemHeat
 			}
 			// undo stock behavior by forcing last_update_time to now
 			Lib.Proto.Set(module_snapshot, "lastUpdateTime", Planetarium.GetUniversalTime());
-			return "converter";
+			return brokerTitle;
 		}
 
 		private static void ResUpdate(Vessel v, List<ResourceRatio> inputList, List<ResourceRatio> outputList, float systemHeatEfficiency, double elapsed_s)
 		{
-			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate("SHConverter", KERBALISM.ResourceBroker.BrokerCategory.Converter, "converter"));
+			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, brokerTitle));
 			foreach (ResourceRatio ir in inputList)
 			{
 				recipe.AddInput(ir.ResourceName, ir.Ratio * elapsed_s);
@@ -120,12 +128,15 @@ namespace KerbalismSystemHeat
 				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
 			}
 			DateTime timeStamp = DateTime.UtcNow;
-			// Update Kerbalism planner UI twice a second if thermal simulation is on
-			if (Lib.IsEditor() && editorThermalSim && (timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= 500.0)
+			// Update Kerbalism planner UI
+			if (Lib.IsEditor() && editorThermalSim && (timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= plannerUIUpdateDelay)
 			{
 				lastPlannerUIUpdate = timeStamp;
-				UI.Update(Kerbalism.Callbacks.visible);
-				UI.On_gui(Kerbalism.Callbacks.visible);
+				// Dirty hack - calling internal method from another assembly via reflection
+				// Wish I could find another way to update Planner UI...
+				// And no, onEditorShipModified event will not do the job, as it will also restart heat simulation process
+				string className = typeof(Planner).AssemblyQualifiedName;
+				KSHUtils.ReflectionStaticCall(className, "RefreshPlanner");
 			}
 		}
 	}

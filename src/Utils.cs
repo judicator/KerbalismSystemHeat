@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using UnityEngine;
 
 namespace KerbalismSystemHeat
@@ -17,6 +19,22 @@ namespace KerbalismSystemHeat
 		public static void LogError(string msg)
 		{
 			Debug.LogError("[KerbalismSystemHeat] " + msg);
+		}
+
+		public static void ReflectionStaticCall(string ClassName, string MethodName)
+		{
+			var staticClass = Type.GetType(ClassName);
+			if (staticClass != null)
+			{
+				try
+				{
+					staticClass.GetMethod(MethodName, BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+				}
+				catch (Exception ex)
+				{
+					LogError("Static class method " + ClassName + "." + MethodName + " reflection call failed. Exception: " + ex.Message + "\n" + ex.ToString());
+				}
+			}
 		}
 
 		public static bool VesselInClosedOrbit(Vessel v)

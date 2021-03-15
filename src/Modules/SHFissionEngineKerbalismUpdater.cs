@@ -94,8 +94,6 @@ namespace KerbalismSystemHeat
 		{
 			if (engineModule != null)
 			{
-				string title = brokerTitle;
-
 				float curECGeneration = engineModule.ElectricalGeneration.Evaluate(engineModule.CurrentReactorThrottle);
 				if (curECGeneration > 0)
 				{
@@ -115,7 +113,7 @@ namespace KerbalismSystemHeat
 						resourceChangeRequest.Add(new KeyValuePair<string, double>(ratio.ResourceName, fuelThrottle * ratio.Ratio));
 					}
 				}
-				return title;
+				return brokerTitle;
 			}
 			return "ERR: no engine";
 		}
@@ -203,9 +201,8 @@ namespace KerbalismSystemHeat
 						}
 					}
 				}
-				// Set LastUpdate to current time - this is done to prevent double resources consumption
-				// Background resource consumption is already handled earlier in this method,
-				// no need to do it again on craft activation in ModuleSystemHeatFissionReactor.DoCatchup()
+				// Prevent resource consumption in ModuleSystemHeatFissionEngine.DoCatchup()
+				// by setting LastUpdate to current time
 				Lib.Proto.Set(reactor, "LastUpdateTime", Planetarium.GetUniversalTime());
 				return title;
 			}

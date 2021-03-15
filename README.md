@@ -1,6 +1,6 @@
 # Kerbalism SystemHeat
 
-Experimental SystemHeat support for Kerbalism.
+Experimental Kerbalism support for SystemHeat.
 
 Important notice: this mod does not touch heat simulation in any manner.
 
@@ -10,16 +10,16 @@ It does, however, support Kerbalism resource production/consumption system for f
 Radiators EC consumption for active and unloaded vessels, Kerbalism planner support.
 
 * Converters  
-Activated converters input resources consumption/output resources production for active and unloaded vessels, partial Kerbalism planner support.
+Activated converters input resources consumption/output resources production for active and unloaded vessels, Kerbalism planner support.
 
 * Harvesters  
-EC consumption/harvested resource production for active and unloaded vessels, partial Kerbalism planner support. Simulated abundance param add to PAW menu in editor for player convenience
+EC consumption/harvested resource production for active and unloaded vessels, Kerbalism planner support. Simulated abundance param added to PAW menu in editor for player convenience.
 
 * Fission Reactors  
-EC and output resource production/input resource consumption for unloaded vessels. Partial Kerbalism planner support.
+EC and output resource production/input resource consumption for unloaded vessels, Kerbalism planner support.
 
 * Fission Engines (ones producing EC)  
-EC and output resource production/input resource consumption for unloaded vessels. Partial Kerbalism planner support.
+EC and output resource production/input resource consumption for unloaded vessels, Kerbalism planner support.
 
 
 ## Dependencies

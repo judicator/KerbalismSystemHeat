@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using KSP.Localization;
 using KERBALISM;
 using SystemHeat;
 
@@ -6,6 +7,8 @@ namespace KerbalismSystemHeat
 {
 	public class SystemHeatRadiatorKerbalism: ModuleSystemHeatRadiator
 	{
+		public static string radiatorTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Radiator");
+		
 		public List<ModuleResource> inputResourcesClone;
 
 		public override void OnLoad(ConfigNode node)
@@ -25,7 +28,7 @@ namespace KerbalismSystemHeat
 			{
 				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
 			}
-			return "radiator";
+			return radiatorTitle;
 		}
 
 		// Simulate resources production/consumption for unloaded vessel
@@ -38,7 +41,7 @@ namespace KerbalismSystemHeat
 					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
 				}
 			}
-			return "radiator";
+			return radiatorTitle;
 		}
 
 		// Simulate resources production/consumption for active vessel
@@ -51,14 +54,16 @@ namespace KerbalismSystemHeat
 					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
 				}
 			}
-			return "radiator";
+			return radiatorTitle;
 		}
 
-        public override void FixedUpdate()
-        {
+		public override void FixedUpdate()
+		{
+			// Temporary set input resources list to empty to prevent resources consumption in FixedUpdate
+			// Input resources consumption is handled by ResourceUpdate
 			resHandler.inputResources = new List<ModuleResource>();
 			base.FixedUpdate();
 			resHandler.inputResources = inputResourcesClone;
-        }
-    }
+		}
+	}
 }
