@@ -1,3 +1,8 @@
+0.3.1
+-----
+- Fixed reactors and fission engines min and max EC generation readouts.
+- Updated readme.
+
 0.3.0
 -----
 - Kerbalism Planner UI update is working for converters and harvesters, when thermal simulation is on.

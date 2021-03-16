@@ -32,6 +32,10 @@ namespace KerbalismSystemHeat
 			if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
 			{
 				reactorModule = FindReactorModule(part, reactorModuleID);
+				if (reactorModule != null)
+				{
+					MinECGeneration = reactorModule.ElectricalGeneration.Evaluate(reactorModule.MinimumThrottle);
+				}
 				if (inputs == null || inputs.Count == 0)
 				{
 					ConfigNode node = ModuleUtils.GetModuleConfigNode(part, moduleName);
@@ -51,10 +55,9 @@ namespace KerbalismSystemHeat
 
 		public virtual void FixedUpdate()
 		{
-			if (!reactorModule && HighLogic.LoadedSceneIsFlight)
+			if (reactorModule != null && HighLogic.LoadedSceneIsFlight)
 			{
 				MaxECGeneration = reactorModule.ElectricalGeneration.Evaluate(100f) * reactorModule.CoreIntegrity / 100f;
-				MinECGeneration = reactorModule.ElectricalGeneration.Evaluate(reactorModule.MinimumThrottle);
 			}
 		}
 

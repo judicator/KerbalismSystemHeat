@@ -2,24 +2,48 @@
 
 Experimental Kerbalism support for SystemHeat.
 
-Important notice: this mod does not touch heat simulation in any manner.
+**Important notice:**  
+if you are going to test mod in started save with some progress made, remember to backup your save files first. Remember: this is still experimental.
 
-It does, however, support Kerbalism resource production/consumption system for following SystemHeat partmodules:
 
-* Radiators  
-Radiators EC consumption for active and unloaded vessels, Kerbalism planner support.
+## What does this mod do?
 
-* Converters  
-Activated converters input resources consumption/output resources production for active and unloaded vessels, Kerbalism planner support.
+This mod implements Kerbalism resource system support for SystemHeat partmodules.
 
-* Harvesters  
-EC consumption/harvested resource production for active and unloaded vessels, Kerbalism planner support. Simulated abundance param added to PAW menu in editor for player convenience.
+This includes:
 
-* Fission Reactors  
-EC and output resource production/input resource consumption for unloaded vessels, Kerbalism planner support.
+### Background resource production/consumption for unloaded vessels
 
-* Fission Engines (ones producing EC)  
-EC and output resource production/input resource consumption for unloaded vessels, Kerbalism planner support.
+Implemented for: radiators, converters, harvesters, fission reactors and fission engines (ones producing EC).
+
+If fission reactor/engine is set to non-manual mode, mod will automatically adjust it's throttle (respecting min and max throttle values) in order to satisfy vessel electricity consumption.
+
+KerbalismSystemHeat does not touch heat simulation in any manner. Heat balance of vessel (including heatloops temperatures, accumulated heat flux, and so on) will be saved until vessel goes "off rails" again (i.e. is loaded and/or activated).
+
+### Kerbalism resource production/consumption system for active vessels
+
+Implemented for: radiators, converters and harvesters.
+
+Fission reactors/engines do not use Kerbalism resource system on active vessels, and are still subject for "incoherent behavior at high warp speed" warning from Kerbalism.
+
+### Kerbalism planner support in VAB/Hangar
+
+Implemented for: radiators, converters, harvesters, fission reactors and fission engines.
+
+Planner simulation for converters and harvesters is activated by turning SystemHeat heat simulation on in PAW menu. Please note that harvesters and converters efficiency now depends only on temperature of heat loop they belong to.
+
+"Simulated resource abundance" parameter added to harvesters for player's convenience (similarly to Kerbalism Harvester partmodule).
+
+
+## Kerbalism profiles support
+
+Default and ScienceOnly profiles have been tested so far.
+
+Others profiles should work too, as this mod does not interfere with them.
+
+Players, using Default Kerbalism profile, may notice that all converters and harvesters have not been switched to SystemHeat modules, and still use Kerbalism processes (and do not produce any heat, as a result).
+
+This is intended, at least until I figure out how to properly integrate Kerbalism Configure partmodule with SystemHeat modules.
 
 
 ## Dependencies
@@ -38,7 +62,8 @@ EC and output resource production/input resource consumption for unloaded vessel
 
 ## Installation
 
-Please remove mod folders (zKerbalismSystemHeat or KerbalismSystemHeat) from GameData folder inside your Kerbal Space Program folder before installation. Then place the GameData folder from downloaded archive inside your Kerbal Space Program folder.
+Please remove mod folders (zKerbalismSystemHeat or KerbalismSystemHeat) from GameData folder inside your Kerbal Space Program folder before installation.
+Then place the GameData folder from downloaded archive inside your Kerbal Space Program folder.
 
 
 ## Licensing
