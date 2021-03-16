@@ -63,6 +63,7 @@ This is intended, at least until I figure out how to properly integrate Kerbalis
 ## Installation
 
 Please remove mod folders (zKerbalismSystemHeat or KerbalismSystemHeat) from GameData folder inside your Kerbal Space Program folder before installation.
+
 Then place the GameData folder from downloaded archive inside your Kerbal Space Program folder.
 
 
