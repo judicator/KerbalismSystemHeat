@@ -12,11 +12,6 @@ namespace KerbalismSystemHeat
 		public static string brokerName = "SHHarvester";
 		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_Harvester");
 
-		private DateTime lastPlannerUIUpdate = DateTime.UtcNow;
-
-		// Kerbalism planner UI update will be called every plannerUIUpdateDelay ms if thermal simulation is on
-		const double plannerUIUpdateDelay = 500.0;
-
 		// In the editor, allow the user to tweak the abundance for simulation purposes
 		[UI_FloatRange(scene = UI_Scene.Editor, minValue = 0f, maxValue = 1f, stepIncrement = 0.01f)]
 		[KSPField(isPersistant = true, guiActiveEditor = true, guiName = "simulated resource abundance")]
@@ -86,7 +81,14 @@ namespace KerbalismSystemHeat
 				calculatedAbundance = (float) KSHUtils.SampleResourceAbundance(vessel, this);
 				if (calculatedAbundance >= HarvestThreshold)
 				{
-					ResUpdate(vessel, inputList, ResourceName, Efficiency, systemHeatEfficiency, calculatedAbundance, TimeWarp.fixedDeltaTime);
+					ResUpdate(
+						vessel,
+						inputList,
+						ResourceName,
+						Efficiency,
+						systemHeatEfficiency,
+						calculatedAbundance,
+						TimeWarp.fixedDeltaTime);
 				}
 			}
 			return brokerTitle;
@@ -120,7 +122,10 @@ namespace KerbalismSystemHeat
 
 		private static void ResUpdate(Vessel v, List<ResourceRatio> inputList, string ResourceName, float Efficiency, float systemHeatEfficiency, double abundance, double elapsed_s)
 		{
-			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Harvester, brokerTitle));
+			ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(
+				brokerName,
+				KERBALISM.ResourceBroker.BrokerCategory.Harvester,
+				brokerTitle));
 			foreach (ResourceRatio ir in inputList)
 			{
 				recipe.AddInput(ir.ResourceName, ir.Ratio * elapsed_s);
@@ -146,16 +151,10 @@ namespace KerbalismSystemHeat
 			{
 				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
 			}
-			DateTime timeStamp = DateTime.UtcNow;
 			// Update Kerbalism planner UI
-			if (Lib.IsEditor() && editorThermalSim && (timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= plannerUIUpdateDelay)
+			if (Lib.IsEditor() && editorThermalSim)
 			{
-				lastPlannerUIUpdate = timeStamp;
-				// Dirty hack - calling internal method from another assembly via reflection
-				// Wish I could find another way to update Planner UI...
-				// And no, onEditorShipModified event will not do the job, as it will also restart heat simulation process
-				string className = typeof(Planner).AssemblyQualifiedName;
-				KSHUtils.ReflectionStaticCall(className, "RefreshPlanner");
+				KSHUtils.UpdateKerbalismPlannerUI();
 			}
 		}
 

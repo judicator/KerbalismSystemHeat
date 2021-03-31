@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using KSP.Localization;
 using KERBALISM;
-using KERBALISM.Planner;
 using SystemHeat;
 
 namespace KerbalismSystemHeat
@@ -11,11 +10,6 @@ namespace KerbalismSystemHeat
 	{
 		public static string brokerName = "SHConverter";
 		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_Converter");
-
-		private DateTime lastPlannerUIUpdate = DateTime.UtcNow;
-
-		// Kerbalism planner UI update will be called every plannerUIUpdateDelay ms if thermal simulation is on
-		const double plannerUIUpdateDelay = 500.0;
 
 		[KSPField(isPersistant = true)]
 		public float systemHeatEfficiency = 0f;
@@ -127,16 +121,10 @@ namespace KerbalismSystemHeat
 			{
 				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
 			}
-			DateTime timeStamp = DateTime.UtcNow;
 			// Update Kerbalism planner UI
-			if (Lib.IsEditor() && editorThermalSim && (timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= plannerUIUpdateDelay)
+			if (Lib.IsEditor() && editorThermalSim)
 			{
-				lastPlannerUIUpdate = timeStamp;
-				// Dirty hack - calling internal method from another assembly via reflection
-				// Wish I could find another way to update Planner UI...
-				// And no, onEditorShipModified event will not do the job, as it will also restart heat simulation process
-				string className = typeof(Planner).AssemblyQualifiedName;
-				KSHUtils.ReflectionStaticCall(className, "RefreshPlanner");
+				KSHUtils.UpdateKerbalismPlannerUI();
 			}
 		}
 	}

@@ -1,11 +1,15 @@
 using System;
 using System.Reflection;
 using UnityEngine;
+using KERBALISM.Planner;
 
 namespace KerbalismSystemHeat
 {
 	public static class KSHUtils
 	{
+		const double plannerUIUpdateDelay = 500.0;
+		private static DateTime lastPlannerUIUpdate = DateTime.UtcNow;
+
 		public static void Log(string msg)
 		{
 			Debug.Log("[KerbalismSystemHeat] " + msg);
@@ -19,6 +23,20 @@ namespace KerbalismSystemHeat
 		public static void LogError(string msg)
 		{
 			Debug.LogError("[KerbalismSystemHeat] " + msg);
+		}
+
+		public static void UpdateKerbalismPlannerUI()
+		{
+			DateTime timeStamp = DateTime.UtcNow;
+			if ((timeStamp - lastPlannerUIUpdate).TotalMilliseconds >= plannerUIUpdateDelay)
+			{
+				lastPlannerUIUpdate = timeStamp;
+				// Dirty hack - calling internal method from another assembly via reflection
+				// Wish I could find another way to update Planner UI...
+				// And no, onEditorShipModified event will not do the job, as it will also restart heat simulation process
+				string className = typeof(Planner).AssemblyQualifiedName;
+				ReflectionStaticCall(className, "RefreshPlanner");
+			}
 		}
 
 		public static void ReflectionStaticCall(string ClassName, string MethodName)

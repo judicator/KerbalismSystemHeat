@@ -1,3 +1,7 @@
+0.3.2
+-----
+- Fixed USI reactors Kerbalism reliability.
+
 0.3.1
 -----
 - Fixed reactors and fission engines min and max EC generation readouts.

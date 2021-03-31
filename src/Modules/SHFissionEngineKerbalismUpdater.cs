@@ -127,7 +127,6 @@ namespace KerbalismSystemHeat
 			ProtoPartModuleSnapshot reactor = FindEngineSnapshot(part_snapshot);
 			if (reactor != null)
 			{
-				string title = brokerTitle;
 				if (Lib.Proto.GetBool(reactor, "Enabled") && Lib.Proto.GetBool(reactor, "GeneratesElectricity"))
 				{
 					float maxGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
@@ -138,6 +137,8 @@ namespace KerbalismSystemHeat
 					VesselResources resources = KERBALISM.ResourceCache.Get(v);
 					if (!Lib.Proto.GetBool(reactor, "ManualControl") && maxGeneration > 0f)
 					{
+						// Non-manual reactor mode - calculating reactor throttle depending on vessel EC consumption
+						// Ignores reactor throttle increase and decrease rates
 						ecToGenerate = resources.GetResource(v, "ElectricCharge").Capacity - resources.GetResource(v, "ElectricCharge").Amount;
 						ecToGenerate -= resources.GetResource(v, "ElectricCharge").Deferred;
 						if (elapsed_s > 0)
@@ -150,16 +151,16 @@ namespace KerbalismSystemHeat
 						}
 						else
 						{
-							ecToGenerate = Lib.Clamp(ecToGenerate, (double)minGeneration, ecToGenerate);
+							ecToGenerate = Lib.Clamp(ecToGenerate, (double) minGeneration, ecToGenerate);
 						}
 						if (ecToGenerate != curECGeneration)
 						{
-							Lib.Proto.Set(reactor, "CurrentElectricalGeneration", (float)ecToGenerate);
+							Lib.Proto.Set(reactor, "CurrentElectricalGeneration", (float) ecToGenerate);
 						}
 						double ff = ecToGenerate / maxGeneration;
 						if (ff != fuelThrottle)
 						{
-							fuelThrottle = (float)ff;
+							fuelThrottle = (float) ff;
 							Lib.Proto.Set(reactor, "CurrentReactorThrottle", fuelThrottle * 100f);
 						}
 					}
@@ -170,7 +171,10 @@ namespace KerbalismSystemHeat
 						{
 							(proto_part_module as SystemHeatFissionEngineKerbalismUpdater).ParseResourcesList(proto_part);
 						}
-						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(brokerName, KERBALISM.ResourceBroker.BrokerCategory.Converter, brokerTitle));
+						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(
+							brokerName,
+							KERBALISM.ResourceBroker.BrokerCategory.Converter,
+							brokerTitle));
 						bool NeedToStopReactor = false;
 						foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
 						{
@@ -190,7 +194,11 @@ namespace KerbalismSystemHeat
 								NeedToStopReactor = true;
 								Message.Post(
 									Severity.warning,
-									Localizer.Format(("#LOC_KerbalismSystemHeat_ReactorOutputResourceFull"), or.ResourceName, v.GetDisplayName(), part_snapshot.partName)
+									Localizer.Format(
+										"#LOC_KerbalismSystemHeat_ReactorOutputResourceFull",
+										or.ResourceName,
+										v.GetDisplayName(),
+										part_snapshot.partName)
 								);
 							}
 						}
@@ -207,7 +215,7 @@ namespace KerbalismSystemHeat
 				// Prevent resource consumption in ModuleSystemHeatFissionEngine.DoCatchup()
 				// by setting LastUpdate to current time
 				Lib.Proto.Set(reactor, "LastUpdateTime", Planetarium.GetUniversalTime());
-				return title;
+				return brokerTitle;
 			}
 			return "ERR: no engine";
 		}

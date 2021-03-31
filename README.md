@@ -3,7 +3,7 @@
 Experimental Kerbalism support for SystemHeat.
 
 **Important notice:**  
-if you are going to test mod in started save with some progress made, remember to backup your save files first. Remember: this is still experimental.
+if you are going to test mod in started save with some progress made, remember to backup your save files first. Do not forget: this is still experimental.
 
 
 ## What does this mod do?

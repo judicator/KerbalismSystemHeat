@@ -8,7 +8,7 @@ namespace KerbalismSystemHeat
 	public class SystemHeatRadiatorKerbalism: ModuleSystemHeatRadiator
 	{
 		public static string radiatorTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Radiator");
-		
+
 		public List<ModuleResource> inputResourcesClone;
 
 		public override void OnLoad(ConfigNode node)

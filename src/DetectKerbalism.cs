@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Reflection.Emit;
 using UnityEngine;
 using KSP.Localization;
 
@@ -14,7 +13,7 @@ namespace KerbalismSystemHeat
 			foreach (var a in AssemblyLoader.loadedAssemblies)
 			{
 				// Kerbalism comes with more than one assembly. There is Kerbalism for debug builds, KerbalismBootLoader,
-				// then there are Kerbalism18 or Kerbalism16_17 depending on the KSP version, and there might be ohter
+				// then there are Kerbalism18 or Kerbalism16_17 depending on the KSP version, and there might be other
 				// assemblies like KerbalismContracts etc.
 				// So look at the assembly name object instead of the assembly name (which is the file name and could be renamed).
 
