@@ -1,9 +1,6 @@
 # Kerbalism SystemHeat
 
-Experimental Kerbalism support for SystemHeat.
-
-**Important notice:**  
-if you are going to test mod in started save with some progress made, remember to backup your save files first. Do not forget: this is still experimental.
+Kerbalism support for SystemHeat.
 
 
 ## What does this mod do?
@@ -34,6 +31,11 @@ Planner simulation for converters and harvesters is activated by turning SystemH
 
 "Simulated resource abundance" parameter added to harvesters for player's convenience (similarly to Kerbalism Harvester partmodule).
 
+### Some rework for radioactivity of fission reactors and engines
+
+Kerbalism emulates radioactivity from fission reactors and engines by adding special "Emitter" module for such parts. However, Emitter partmodule doesn't care if reactor/engine was ever started, and "emits" constantly.
+This mod changes this in more realistic manner: fission reactor/engine will start emit radiation only then they has started, and after they has been shutdown, emission will slowly decay to some minimum value.
+
 
 ## Kerbalism profiles support
 
@@ -48,8 +50,8 @@ This is intended, at least until I figure out how to properly integrate Kerbalis
 
 ## Dependencies
 
-* [Kerbalism (3.12)](https://github.com/Kerbalism/Kerbalism)
-* [SystemHeat (0.3.10)](https://github.com/post-kerbin-mining-corporation/SystemHeat)
+* [Kerbalism (3.14)](https://github.com/Kerbalism/Kerbalism)
+* [SystemHeat (0.4.3)](https://github.com/post-kerbin-mining-corporation/SystemHeat)
 * SystemHeatFissionReactors (from SystemHeat/Extras)
 * SystemHeatFissionEngines (from SystemHeat/Extras)
 * [Module manager (last version preferred)](https://github.com/sarbian/ModuleManager)

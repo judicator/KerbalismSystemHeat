@@ -1,3 +1,10 @@
+0.4.0
+-----
+ * Fixed issue #1, preventing patching ModuleSystemHeatFissionReactor partmodules.
+ * Fixed issue #2 (throttling for fission reactors on unloaded vessels): feature has been redone.
+ * Fixed support for fixed microchannel radiators from HeatControl (B9PartSwitch variants issue).
+ + Implemented new feature: dynamic radioactivity for fission reactors and engines (will not emit radiation before started, emission will slowly decay after reactor/engine have been stopped).
+
 0.3.2
 -----
 - Fixed USI reactors Kerbalism reliability.
