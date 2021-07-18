@@ -102,7 +102,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(ProjectName).dll" "d:\KSP 1.8.1 - test\GameData\zKerbalismSystemHeat\Plugins\zKerbalismSystemHeat.dll"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(ProjectName).dll" "F:\KSP tests\1.11.2\GameData\zKerbalismSystemHeat\Plugins\zKerbalismSystemHeat.dll"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

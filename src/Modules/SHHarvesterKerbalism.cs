@@ -143,7 +143,7 @@ namespace KerbalismSystemHeat
 			base.FixedUpdate();
 			inputList = inputListClone;
 			Efficiency = eff;
-			if (HighLogic.LoadedSceneIsFlight)
+			if (Lib.IsFlight())
 			{
 				canHarvest = CanHarvest();
 			}

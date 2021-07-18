@@ -11,6 +11,9 @@ namespace KerbalismSystemHeat
 		public static string brokerName = "SHFissionEngine";
 		public static string brokerTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Brokers_FissionEngine");
 
+		[KSPField(isPersistant = true)]
+		public bool FirstLoad = true;
+
 		// This should correspond to the related ModuleSystemHeatFissionReactor
 		[KSPField(isPersistant = true)]
 		public string engineModuleID;
@@ -18,7 +21,26 @@ namespace KerbalismSystemHeat
 		[KSPField(isPersistant = true)]
 		public float MaxECGeneration = 0f;
 		[KSPField(isPersistant = true)]
-		public float MinECGeneration = 0f;
+		public float MinThrottle = 0.25f;
+		[KSPField(isPersistant = true)]
+		public float MaxThrottle = 1.0f;
+		[KSPField(isPersistant = true)]
+		public bool GeneratesElectricity = true;
+
+		[KSPField(isPersistant = true)]
+		public bool ReactorHasStarted = false;
+		[KSPField(isPersistant = true)]
+		public bool EmitterRunning = true;
+		[KSPField(isPersistant = true)]
+		public double EmitterMaxRadiation = 0d;
+		[KSPField(isPersistant = true)]
+		public bool LastReactorState = false;
+		[KSPField(isPersistant = true)]
+		public double ReactorStoppedTimestamp = 0d;
+		[KSPField(isPersistant = true)]
+		public double MinEmissionPercent = 0d;
+		[KSPField(isPersistant = true)]
+		public double EmissionDecayRate = 1d;
 
 		protected static string engineModuleName = "ModuleSystemHeatFissionEngine";
 		protected ModuleSystemHeatFissionReactor engineModule;
@@ -27,22 +49,51 @@ namespace KerbalismSystemHeat
 		protected List<ResourceRatio> inputs;
 		protected List<ResourceRatio> outputs;
 
+		// Radiation source on part
+		protected Emitter emitter;
+
 		public virtual void Start()
 		{
-			if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
+			if (Lib.IsFlight() || Lib.IsEditor())
 			{
-				engineModule = FindEngineModule(part, engineModuleID);
-				if (engineModule != null)
-				{
-					MinECGeneration = engineModule.ElectricalGeneration.Evaluate(engineModule.MinimumThrottle);
+				if (engineModule == null)
+                {
+					engineModule = FindEngineModule(part, engineModuleID);
 				}
-				if (inputs == null || inputs.Count == 0)
+				if (Features.Radiation && emitter == null)
 				{
-					ConfigNode node = ModuleUtils.GetModuleConfigNode(part, moduleName);
-					if (node != null)
+					emitter = FindEmitterModule(part);
+				}
+				if (FirstLoad)
+				{
+					if (emitter != null)
 					{
-						OnLoad(node);
+						EmitterMaxRadiation = emitter.radiation;
+						if (EmitterMaxRadiation < 0)
+                        {
+							EmitterMaxRadiation = 0d;
+						}
 					}
+					if (engineModule != null)
+					{
+						MaxECGeneration = engineModule.ElectricalGeneration.Evaluate(100f);
+						MinThrottle = engineModule.MinimumThrottle / 100f;
+						GeneratesElectricity = engineModule.GeneratesElectricity;
+						LastReactorState = engineModule.Enabled;
+					}
+					if (inputs == null || inputs.Count == 0)
+					{
+						ConfigNode node = ModuleUtils.GetModuleConfigNode(part, moduleName);
+						if (node != null)
+						{
+							OnLoad(node);
+						}
+					}
+					FirstLoad = false;
+				}
+				else
+				{
+					EmitterRunning = true;
 				}
 			}
 		}
@@ -55,9 +106,69 @@ namespace KerbalismSystemHeat
 
 		public virtual void FixedUpdate()
 		{
-			if (engineModule != null && HighLogic.LoadedSceneIsFlight)
+			if (engineModule != null && Lib.IsFlight())
 			{
-				MaxECGeneration = engineModule.ElectricalGeneration.Evaluate(100f) * engineModule.CoreIntegrity / 100f;
+				if (Features.Radiation && emitter != null)
+				{
+					if (!ReactorHasStarted && !engineModule.Enabled && EmitterRunning)
+					{
+						// Disable radiation source, because reactor has not started yet
+						emitter.running = false;
+						EmitterRunning = false;
+					}
+					if (!ReactorHasStarted && engineModule.Enabled)
+					{
+						// Reactor has started - enable radiation source
+						ReactorHasStarted = true;
+						emitter.running = true;
+						emitter.radiation = EmitterMaxRadiation;
+					}
+					if (LastReactorState != engineModule.Enabled)
+					{
+						LastReactorState = engineModule.Enabled;
+						if (engineModule.Enabled)
+						{
+							// Reactor has started again - set radiation source emission to maximum
+							emitter.radiation = EmitterMaxRadiation;
+							ReactorStoppedTimestamp = 0d;
+						}
+						else
+						{
+							// Reactor has stopped - save timestamp, when it happened
+							ReactorStoppedTimestamp = Planetarium.GetUniversalTime();
+						}
+					}
+					if (!engineModule.Enabled && ReactorHasStarted && ReactorStoppedTimestamp > 0 && MinEmissionPercent < 100)
+					{
+						// Radiation decay
+						double MinRadiation = EmitterMaxRadiation * MinEmissionPercent / 100;
+						if (EmissionDecayRate <= 0)
+						{
+							emitter.radiation = MinRadiation;
+							ReactorStoppedTimestamp = 0d;
+						}
+						else
+						{
+							double secondsPassed = Planetarium.GetUniversalTime() - ReactorStoppedTimestamp;
+							if (secondsPassed > 0)
+							{
+								double NewRadiation = EmitterMaxRadiation * (100 - secondsPassed / EmissionDecayRate) / 100;
+								if (NewRadiation <= MinRadiation)
+								{
+									NewRadiation = MinRadiation;
+									ReactorStoppedTimestamp = 0d;
+								}
+								emitter.radiation = NewRadiation;
+							}
+						}
+					}
+				}
+				// Update MaxThrottle according to reactor CoreIntegrity
+				MaxThrottle = engineModule.CoreIntegrity / 100f;
+				if (MinThrottle > MaxThrottle)
+				{
+					MinThrottle = MaxThrottle;
+				}
 			}
 		}
 
@@ -124,95 +235,152 @@ namespace KerbalismSystemHeat
 		// Simulate resources production/consumption for unloaded vessel
 		public static string BackgroundUpdate(Vessel v, ProtoPartSnapshot part_snapshot, ProtoPartModuleSnapshot module_snapshot, PartModule proto_part_module, Part proto_part, Dictionary<string, double> availableResources, List<KeyValuePair<string, double>> resourceChangeRequest, double elapsed_s)
 		{
-			ProtoPartModuleSnapshot reactor = FindEngineSnapshot(part_snapshot);
+			ProtoPartModuleSnapshot reactor = KSHUtils.FindPartModuleSnapshot(part_snapshot, engineModuleName);
 			if (reactor != null)
 			{
-				if (Lib.Proto.GetBool(reactor, "Enabled") && Lib.Proto.GetBool(reactor, "GeneratesElectricity"))
+				if (Lib.Proto.GetBool(reactor, "Enabled") && Lib.Proto.GetBool(module_snapshot, "GeneratesElectricity"))
 				{
-					float maxGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
-					float minGeneration = Lib.Proto.GetFloat(module_snapshot, "MinECGeneration");
-					float curECGeneration = Lib.Proto.GetFloat(reactor, "CurrentElectricalGeneration");
-					float fuelThrottle = Lib.Proto.GetFloat(reactor, "CurrentReactorThrottle") / 100f;
-					double ecToGenerate = curECGeneration;
-					VesselResources resources = KERBALISM.ResourceCache.Get(v);
-					if (!Lib.Proto.GetBool(reactor, "ManualControl") && maxGeneration > 0f)
+					float curThrottle = Lib.Proto.GetFloat(reactor, "CurrentReactorThrottle") / 100f;
+					float minThrottle = Lib.Proto.GetFloat(module_snapshot, "MinThrottle");
+					float maxThrottle = Lib.Proto.GetFloat(module_snapshot, "MaxThrottle");
+					float maxECGeneration = Lib.Proto.GetFloat(module_snapshot, "MaxECGeneration");
+					bool needToStopReactor = false;
+					if (maxECGeneration > 0)
 					{
-						// Non-manual reactor mode - calculating reactor throttle depending on vessel EC consumption
-						// Ignores reactor throttle increase and decrease rates
-						ecToGenerate = resources.GetResource(v, "ElectricCharge").Capacity - resources.GetResource(v, "ElectricCharge").Amount;
-						ecToGenerate -= resources.GetResource(v, "ElectricCharge").Deferred;
-						if (elapsed_s > 0)
-						{
-							ecToGenerate /= elapsed_s;
-						}
-						if (ecToGenerate < minGeneration)
-						{
-							ecToGenerate = minGeneration;
-						}
-						else
-						{
-							ecToGenerate = Lib.Clamp(ecToGenerate, (double) minGeneration, ecToGenerate);
-						}
-						if (ecToGenerate != curECGeneration)
-						{
-							Lib.Proto.Set(reactor, "CurrentElectricalGeneration", (float) ecToGenerate);
-						}
-						double ff = ecToGenerate / maxGeneration;
-						if (ff != fuelThrottle)
-						{
-							fuelThrottle = (float) ff;
-							Lib.Proto.Set(reactor, "CurrentReactorThrottle", fuelThrottle * 100f);
-						}
-					}
-					// Resources generation/consumption according to reactor throttle parameter
-					if (ecToGenerate > 0)
-					{
+						VesselResources resources = KERBALISM.ResourceCache.Get(v);
 						if (!(proto_part_module as SystemHeatFissionEngineKerbalismUpdater).resourcesListParsed)
 						{
 							(proto_part_module as SystemHeatFissionEngineKerbalismUpdater).ParseResourcesList(proto_part);
 						}
-						ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(
-							brokerName,
-							KERBALISM.ResourceBroker.BrokerCategory.Converter,
-							brokerTitle));
-						bool NeedToStopReactor = false;
-						foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
-						{
-							recipe.AddInput(ir.ResourceName, ir.Ratio * fuelThrottle * elapsed_s);
-							if (resources.GetResource(v, ir.ResourceName).Amount < double.Epsilon)
-							{
-								// Input resource amount is zero - stop reactor
-								NeedToStopReactor = true;
-							}
-						}
-						foreach (ResourceRatio or in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).outputs)
-						{
-							recipe.AddOutput(or.ResourceName, or.Ratio * fuelThrottle * elapsed_s, dump: false);
-							if (1 - resources.GetResource(v, or.ResourceName).Level < double.Epsilon)
-							{
-								// Output resource is at full capacity
-								NeedToStopReactor = true;
-								Message.Post(
-									Severity.warning,
-									Localizer.Format(
-										"#LOC_KerbalismSystemHeat_ReactorOutputResourceFull",
-										or.ResourceName,
-										v.GetDisplayName(),
-										part_snapshot.partName)
-								);
-							}
-						}
-						recipe.AddOutput("ElectricCharge", ecToGenerate * elapsed_s, dump: true);
-						resources.AddRecipe(recipe);
 
-						// Disable reactor
-						if (NeedToStopReactor)
+						// Mininum reactor throttle
+						// Some input/output resources will always be consumed/produced as long as minThrottle > 0
+						if (minThrottle > 0)
 						{
-							Lib.Proto.Set(reactor, "Enabled", false);
+							ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(
+								brokerName,
+								KERBALISM.ResourceBroker.BrokerCategory.Converter,
+								brokerTitle));
+							foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
+							{
+								recipe.AddInput(ir.ResourceName, ir.Ratio * minThrottle * elapsed_s);
+								if (resources.GetResource(v, ir.ResourceName).Amount < double.Epsilon)
+								{
+									// Input resource amount is zero - stop reactor
+									needToStopReactor = true;
+								}
+							}
+							foreach (ResourceRatio or in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).outputs)
+							{
+								recipe.AddOutput(or.ResourceName, or.Ratio * minThrottle * elapsed_s, dump: false);
+								if (1 - resources.GetResource(v, or.ResourceName).Level < double.Epsilon)
+								{
+									// Output resource is at full capacity
+									needToStopReactor = true;
+									Message.Post(
+										Severity.warning,
+										Localizer.Format(
+											"#LOC_KerbalismSystemHeat_ReactorOutputResourceFull",
+											or.ResourceName,
+											v.GetDisplayName(),
+											part_snapshot.partName)
+									);
+								}
+							}
+							recipe.AddOutput("ElectricCharge", minThrottle * maxECGeneration * elapsed_s, dump: true);
+							resources.AddRecipe(recipe);
+						}
+
+						if (!needToStopReactor)
+						{
+							if (!Lib.Proto.GetBool(reactor, "ManualControl"))
+							{
+								// Automatic reactor throttle mode
+								curThrottle = maxThrottle;
+							}
+							curThrottle -= minThrottle;
+							if (curThrottle > 0)
+							{
+								ResourceRecipe recipe = new ResourceRecipe(KERBALISM.ResourceBroker.GetOrCreate(
+									brokerName,
+									KERBALISM.ResourceBroker.BrokerCategory.Converter,
+									brokerTitle));
+								foreach (ResourceRatio ir in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).inputs)
+								{
+									recipe.AddInput(ir.ResourceName, ir.Ratio * curThrottle * elapsed_s);
+									if (resources.GetResource(v, ir.ResourceName).Amount < double.Epsilon)
+									{
+										// Input resource amount is zero - stop reactor
+										needToStopReactor = true;
+									}
+								}
+								foreach (ResourceRatio or in (proto_part_module as SystemHeatFissionEngineKerbalismUpdater).outputs)
+								{
+									recipe.AddOutput(or.ResourceName, or.Ratio * curThrottle * elapsed_s, dump: false);
+									if (1 - resources.GetResource(v, or.ResourceName).Level < double.Epsilon)
+									{
+										// Output resource is at full capacity
+										needToStopReactor = true;
+										Message.Post(
+											Severity.warning,
+											Localizer.Format(
+												"#LOC_KerbalismSystemHeat_ReactorOutputResourceFull",
+												or.ResourceName,
+												v.GetDisplayName(),
+												part_snapshot.partName)
+										);
+									}
+								}
+								recipe.AddOutput("ElectricCharge", curThrottle * maxECGeneration * elapsed_s, dump: false);
+								resources.AddRecipe(recipe);
+							}
+						}
+					}
+
+					// Disable reactor
+					if (needToStopReactor)
+					{
+						Lib.Proto.Set(reactor, "Enabled", false);
+					}
+				}
+				else
+				{
+					// Reactor disabled - radiation decay mechanics
+					if (Features.Radiation &&
+						Lib.Proto.GetBool(module_snapshot, "ReactorHasStarted") &&
+						Lib.Proto.GetDouble(module_snapshot, "ReactorStoppedTimestamp") > 0 &&
+						Lib.Proto.GetDouble(module_snapshot, "MinEmissionPercent") < 100)
+					{
+						ProtoPartModuleSnapshot emitter = KSHUtils.FindPartModuleSnapshot(part_snapshot, "Emitter");
+						if (emitter != null)
+						{
+							double EmitterMaxRadiation = Lib.Proto.GetDouble(module_snapshot, "EmitterMaxRadiation");
+							double MinEmissionPercent = Lib.Proto.GetDouble(module_snapshot, "MinEmissionPercent");
+							double EmissionDecayRate = Lib.Proto.GetDouble(module_snapshot, "EmissionDecayRate");
+							double MinRadiation = EmitterMaxRadiation * MinEmissionPercent / 100;
+							if (EmissionDecayRate <= 0)
+							{
+								Lib.Proto.Set(emitter, "radiation", MinRadiation);
+								Lib.Proto.Set(module_snapshot, "ReactorStoppedTimestamp", 0d);
+							}
+							else
+							{
+								double secondsPassed = Planetarium.GetUniversalTime() - Lib.Proto.GetDouble(module_snapshot, "ReactorStoppedTimestamp");
+								if (secondsPassed > 0)
+								{
+									double NewRadiation = EmitterMaxRadiation * (100 - secondsPassed / EmissionDecayRate) / 100;
+									if (NewRadiation <= MinRadiation)
+									{
+										NewRadiation = MinRadiation;
+										Lib.Proto.Set(module_snapshot, "ReactorStoppedTimestamp", 0d);
+									}
+									Lib.Proto.Set(emitter, "radiation", NewRadiation);
+								}
+							}
 						}
 					}
 				}
-				// Prevent resource consumption in ModuleSystemHeatFissionEngine.DoCatchup()
+				// Prevent resource consumption in ModuleSystemHeatFissionReactor.DoCatchup()
 				// by setting LastUpdate to current time
 				Lib.Proto.Set(reactor, "LastUpdateTime", Planetarium.GetUniversalTime());
 				return brokerTitle;
@@ -237,23 +405,15 @@ namespace KerbalismSystemHeat
 			return engine;
 		}
 
-		// Find PartModule snapshot (used for unloaded vessels as they only have Modules snapshots)
-		protected static ProtoPartModuleSnapshot FindEngineSnapshot(ProtoPartSnapshot p)
+		// Find Emitter module on part (Kerbalism radiation source)
+		public Emitter FindEmitterModule(Part part)
 		{
-			ProtoPartModuleSnapshot m = null;
-			for (int i = 0; i < p.modules.Count; i++)
+			Emitter emitter = part.GetComponents<Emitter>().ToList().First();
+			if (emitter == null)
 			{
-				if (p.modules[i].moduleName == engineModuleName)
-				{
-					m = p.modules[i];
-					break;
-				}
+				KSHUtils.LogWarning($"[{part}] No radiation Emitter was found.");
 			}
-			if (m == null)
-			{
-				KSHUtils.LogError($" Part [{p.partName}] No {engineModuleName} was found in part snapshot.");
-			}
-			return m;
+			return emitter;
 		}
 	}
 }

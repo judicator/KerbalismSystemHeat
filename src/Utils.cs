@@ -80,5 +80,24 @@ namespace KerbalismSystemHeat
 			};
 			return ResourceMap.Instance.GetAbundance(request);
 		}
+
+		// Find PartModule snapshot (used for unloaded vessels as they only have Modules snapshots)
+		public static ProtoPartModuleSnapshot FindPartModuleSnapshot(ProtoPartSnapshot p, string PartModuleName)
+		{
+			ProtoPartModuleSnapshot m = null;
+			for (int i = 0; i < p.modules.Count; i++)
+			{
+				if (p.modules[i].moduleName == PartModuleName)
+				{
+					m = p.modules[i];
+					break;
+				}
+			}
+			if (m == null)
+			{
+				LogError($" Part [{p.partInfo.title}] No {PartModuleName} was found in part snapshot.");
+			}
+			return m;
+		}
 	}
 }

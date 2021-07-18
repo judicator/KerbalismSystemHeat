@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using KSP.Localization;
 using KERBALISM;
@@ -22,7 +21,10 @@ namespace KerbalismSystemHeat
 		{
 			editorThermalSim = !editorThermalSim;
 			// Update Kerbalism planner UI
-			if (Lib.IsEditor())	GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+			if (Lib.IsEditor())
+            {
+				GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+			}
 		}
 
 		public override void OnLoad(ConfigNode node)
