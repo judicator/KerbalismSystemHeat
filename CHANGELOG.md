@@ -1,3 +1,7 @@
+0.4.1
+-----
+ + Added optional patch (Extras/SystemHeatFissionReactorsLowerMinThrust): sets minimum throttle to fission reactors to 10% (default is 25%). Could help you save some EnrichedUranium on long journeys.
+
 0.4.0
 -----
  * Fixed issue #1, preventing patching ModuleSystemHeatFissionReactor partmodules.

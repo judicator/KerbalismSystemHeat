@@ -1,19 +1,15 @@
 # Kerbalism SystemHeat
 
-Kerbalism support for SystemHeat.
+"Middleman" mod, which implements Kerbalism resource system support for [Nertea's SystemHeat](https://forum.kerbalspaceprogram.com/index.php?/topic/193909-111x-systemheat-a-replacement-for-the-coreheat-system-june-4th/).
 
 
-## What does this mod do?
-
-This mod implements Kerbalism resource system support for SystemHeat partmodules.
-
-This includes:
+## What partmodules and features of SystemHeat mod are supported and how?
 
 ### Background resource production/consumption for unloaded vessels
 
-Implemented for: radiators, converters, harvesters, fission reactors and fission engines (ones producing EC).
+Implemented for: radiators, converters, harvesters, fission reactors and fission engines.
 
-If fission reactor/engine is set to non-manual mode, mod will automatically adjust it's throttle (respecting min and max throttle values) in order to satisfy vessel electricity consumption.
+Mod will automatically adjust fission reactor's throttle (respecting min (and max, if reactor in manual mode) throttle values) in order to satisfy vessel electricity consumption. Same also applies to trimodal fission engines (ones producing EC).
 
 KerbalismSystemHeat does not touch heat simulation in any manner. Heat balance of vessel (including heatloops temperatures, accumulated heat flux, and so on) will be saved until vessel goes "off rails" again (i.e. is loaded and/or activated).
 
@@ -33,8 +29,8 @@ Planner simulation for converters and harvesters is activated by turning SystemH
 
 ### Some rework for radioactivity of fission reactors and engines
 
-Kerbalism emulates radioactivity from fission reactors and engines by adding special "Emitter" module for such parts. However, Emitter partmodule doesn't care if reactor/engine was ever started, and "emits" constantly.
-This mod changes this in more realistic manner: fission reactor/engine will start emit radiation only then they has started, and after they has been shutdown, emission will slowly decay to some minimum value.
+Kerbalism emulates radioactivity from fission reactors and engines by adding special "Emitter" module for such parts. However, Emitter partmodule doesn't care if reactor/engine was ever started, and always "emits" at constant power.
+This mod changes behavior this in more realistic manner: fission reactor/engine will begin emit radiation only then they have started, and after they have been shutdown, emission will slowly decay to some minimum value.
 
 
 ## Kerbalism profiles support
@@ -57,6 +53,11 @@ This is intended, at least until I figure out how to properly integrate Kerbalis
 * [Module manager (last version preferred)](https://github.com/sarbian/ModuleManager)
 
 
+## Supported KSP versions
+
+KerbalismSystemHeat have been tested in KSP versions from 1.8.1 to 1.11.2.
+
+
 ## Mods support
 
 * [USI Core](https://github.com/UmbraSpaceIndustries/USI_Core) - USI reactors will be switched to SystemHeat modules
@@ -64,9 +65,16 @@ This is intended, at least until I figure out how to properly integrate Kerbalis
 
 ## Installation
 
-Please remove mod folders (zKerbalismSystemHeat or KerbalismSystemHeat) from GameData folder inside your Kerbal Space Program folder before installation.
+Please remove mod folders (`zKerbalismSystemHeat` or `KerbalismSystemHeat`) from `GameData` folder inside your Kerbal Space Program folder before installation.
 
-Then place the GameData folder from downloaded archive inside your Kerbal Space Program folder.
+Then place the `GameData` folder from downloaded archive inside your Kerbal Space Program folder.
+
+
+## Optional patch
+
+There is an optional patch in `Extras/SystemHeatFissionReactorsLowerMinThrust`. It changes minimum throttle for fission reactor from default 25% to more reasonable 10%.
+
+If you want to install it, just copy `SystemHeatFissionReactorsLowerMinThrust` folder to your `GameData`.
 
 
 ## Licensing
