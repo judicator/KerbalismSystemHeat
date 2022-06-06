@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KSP.Localization;
 using KERBALISM;
@@ -7,6 +8,15 @@ namespace KerbalismSystemHeat
 {
 	public class SystemHeatRadiatorKerbalism: ModuleSystemHeatRadiator
 	{
+		[KSPField(isPersistant = true)]
+		public float scale = 1f;
+
+		[KSPField(isPersistant = true)]
+		public float scaleEmissionPower = 2f;
+
+		[KSPField(isPersistant = false)]
+		public FloatCurve refTemperatureCurve = new FloatCurve();
+
 		public static string radiatorTitle = Localizer.Format("#LOC_KerbalismSystemHeat_Radiator");
 
 		public List<ModuleResource> inputResourcesClone;
@@ -15,6 +25,19 @@ namespace KerbalismSystemHeat
 		{
 			base.OnLoad(node);
 			inputResourcesClone = resHandler.inputResources.ConvertAll(p => p);
+			refTemperatureCurve.Load(node.GetNode("temperatureCurve"));
+		}
+
+		// Tweakscale support
+		[KSPEvent]
+		void OnPartScaleChanged(BaseEventDetails data)
+		{
+			scale = data.Get<float>("factorAbsolute");
+			temperatureCurve = new FloatCurve();
+			for (int i = 0; i < refTemperatureCurve.Curve.length; i++)
+			{
+				temperatureCurve.Add(refTemperatureCurve.Curve.keys[i].time, refTemperatureCurve.Curve.keys[i].value * (float) Math.Pow(scale, scaleEmissionPower));
+			}
 		}
 
 		// Estimate resources production/consumption for Kerbalism planner
@@ -26,7 +49,7 @@ namespace KerbalismSystemHeat
 			// we use PlannerController instead
 			foreach (ModuleResource res in resHandler.inputResources)
 			{
-				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
+				resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate * Math.Pow(scale, scaleEmissionPower)));
 			}
 			return radiatorTitle;
 		}
@@ -36,9 +59,11 @@ namespace KerbalismSystemHeat
 		{
 			if (Lib.Proto.GetBool(module_snapshot, "IsCooling"))
 			{
+				float scale = Lib.Proto.GetFloat(module_snapshot, "scale");
+				float scaleEmissionPower = Lib.Proto.GetFloat(module_snapshot, "scaleECConsumptionPower");
 				foreach (ModuleResource res in ((proto_part_module as SystemHeatRadiatorKerbalism).resHandler.inputResources))
 				{
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate * Math.Pow(scale, scaleEmissionPower)));
 				}
 			}
 			return radiatorTitle;
@@ -51,7 +76,7 @@ namespace KerbalismSystemHeat
 			{
 				foreach (ModuleResource res in resHandler.inputResources)
 				{
-					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate));
+					resourceChangeRequest.Add(new KeyValuePair<string, double>(res.name, -res.rate * Math.Pow(scale, scaleEmissionPower)));
 				}
 			}
 			return radiatorTitle;

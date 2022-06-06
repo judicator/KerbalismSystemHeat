@@ -22,7 +22,7 @@ namespace KerbalismSystemHeat
 			editorThermalSim = !editorThermalSim;
 			// Update Kerbalism planner UI
 			if (Lib.IsEditor())
-            {
+			{
 				GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
 			}
 		}

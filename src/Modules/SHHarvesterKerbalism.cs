@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using KSP.Localization;
 using KERBALISM;
-using KERBALISM.Planner;
 using SystemHeat;
 
 namespace KerbalismSystemHeat
@@ -25,6 +23,12 @@ namespace KerbalismSystemHeat
 
 		[KSPField(isPersistant = true)]
 		public float systemHeatEfficiency = 0f;
+
+		[KSPField]
+		public double abundance_rate = 0.1;            // abundance level at which rate is specified (10% by default)
+
+		private double ecRate = 0.0f;
+		private bool ecRateDefined = false;
 
 		private float eff = 0f;
 
@@ -51,11 +55,16 @@ namespace KerbalismSystemHeat
 			foreach (ResourceRatio res in inputList)
 			{
 				inputListClone.Add(res);
+				if (!ecRateDefined && res.ResourceName == "ElectricCharge")
+				{
+					ecRate = res.Ratio;
+				}
 			}
 			if (heatModule != null)
 			{
 				systemHeatEfficiency = systemEfficiency.Evaluate(heatModule.currentLoopTemperature);
 			}
+			ecRateDefined = true;
 		}
 
 		// Estimate resources production/consumption for Kerbalism planner

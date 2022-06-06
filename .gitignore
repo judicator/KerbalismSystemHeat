@@ -183,6 +183,10 @@ UpgradeLog*.htm
 FakesAssemblies/
 
 # Other files
+bugs/
 unsupported_Modules.txt
 Modules.bak/
+promo/
+Extras/SystemHeatKerbalismHabitats/
+*.bak
 *.netkan

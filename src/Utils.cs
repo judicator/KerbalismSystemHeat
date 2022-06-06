@@ -33,7 +33,7 @@ namespace KerbalismSystemHeat
 				lastPlannerUIUpdate = timeStamp;
 				// Dirty hack - calling internal method from another assembly via reflection
 				// Wish I could find another way to update Planner UI...
-				// And no, onEditorShipModified event will not do the job, as it will also restart heat simulation process
+				// And no, onEditorShipModified event will not do the trick, as it will also restart heat simulation process
 				string className = typeof(Planner).AssemblyQualifiedName;
 				ReflectionStaticCall(className, "RefreshPlanner");
 			}

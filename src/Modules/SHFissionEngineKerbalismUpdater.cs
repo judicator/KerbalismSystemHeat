@@ -27,21 +27,6 @@ namespace KerbalismSystemHeat
 		[KSPField(isPersistant = true)]
 		public bool GeneratesElectricity = true;
 
-		[KSPField(isPersistant = true)]
-		public bool ReactorHasStarted = false;
-		[KSPField(isPersistant = true)]
-		public bool EmitterRunning = true;
-		[KSPField(isPersistant = true)]
-		public double EmitterMaxRadiation = 0d;
-		[KSPField(isPersistant = true)]
-		public bool LastReactorState = false;
-		[KSPField(isPersistant = true)]
-		public double ReactorStoppedTimestamp = 0d;
-		[KSPField(isPersistant = true)]
-		public double MinEmissionPercent = 0d;
-		[KSPField(isPersistant = true)]
-		public double EmissionDecayRate = 1d;
-
 		protected static string engineModuleName = "ModuleSystemHeatFissionEngine";
 		protected ModuleSystemHeatFissionReactor engineModule;
 
@@ -49,37 +34,22 @@ namespace KerbalismSystemHeat
 		protected List<ResourceRatio> inputs;
 		protected List<ResourceRatio> outputs;
 
-		// Radiation source on part
-		protected Emitter emitter;
-
 		public virtual void Start()
 		{
 			if (Lib.IsFlight() || Lib.IsEditor())
 			{
 				if (engineModule == null)
-                {
-					engineModule = FindEngineModule(part, engineModuleID);
-				}
-				if (Features.Radiation && emitter == null)
 				{
-					emitter = FindEmitterModule(part);
+					engineModule = FindEngineModule(part, engineModuleID);
 				}
 				if (FirstLoad)
 				{
-					if (emitter != null)
-					{
-						EmitterMaxRadiation = emitter.radiation;
-						if (EmitterMaxRadiation < 0)
-                        {
-							EmitterMaxRadiation = 0d;
-						}
-					}
 					if (engineModule != null)
 					{
 						MaxECGeneration = engineModule.ElectricalGeneration.Evaluate(100f);
 						MinThrottle = engineModule.MinimumThrottle / 100f;
 						GeneratesElectricity = engineModule.GeneratesElectricity;
-						LastReactorState = engineModule.Enabled;
+						//LastReactorState = engineModule.Enabled;
 					}
 					if (inputs == null || inputs.Count == 0)
 					{
@@ -91,78 +61,18 @@ namespace KerbalismSystemHeat
 					}
 					FirstLoad = false;
 				}
-				else
-				{
-					EmitterRunning = true;
-				}
 			}
 		}
 
 		public override void OnLoad(ConfigNode node)
 		{
 			base.OnLoad(node);
-			ParseResourcesList(part);
 		}
 
 		public virtual void FixedUpdate()
 		{
 			if (engineModule != null && Lib.IsFlight())
 			{
-				if (Features.Radiation && emitter != null)
-				{
-					if (!ReactorHasStarted && !engineModule.Enabled && EmitterRunning)
-					{
-						// Disable radiation source, because reactor has not started yet
-						emitter.running = false;
-						EmitterRunning = false;
-					}
-					if (!ReactorHasStarted && engineModule.Enabled)
-					{
-						// Reactor has started - enable radiation source
-						ReactorHasStarted = true;
-						emitter.running = true;
-						emitter.radiation = EmitterMaxRadiation;
-					}
-					if (LastReactorState != engineModule.Enabled)
-					{
-						LastReactorState = engineModule.Enabled;
-						if (engineModule.Enabled)
-						{
-							// Reactor has started again - set radiation source emission to maximum
-							emitter.radiation = EmitterMaxRadiation;
-							ReactorStoppedTimestamp = 0d;
-						}
-						else
-						{
-							// Reactor has stopped - save timestamp, when it happened
-							ReactorStoppedTimestamp = Planetarium.GetUniversalTime();
-						}
-					}
-					if (!engineModule.Enabled && ReactorHasStarted && ReactorStoppedTimestamp > 0 && MinEmissionPercent < 100)
-					{
-						// Radiation decay
-						double MinRadiation = EmitterMaxRadiation * MinEmissionPercent / 100;
-						if (EmissionDecayRate <= 0)
-						{
-							emitter.radiation = MinRadiation;
-							ReactorStoppedTimestamp = 0d;
-						}
-						else
-						{
-							double secondsPassed = Planetarium.GetUniversalTime() - ReactorStoppedTimestamp;
-							if (secondsPassed > 0)
-							{
-								double NewRadiation = EmitterMaxRadiation * (100 - secondsPassed / EmissionDecayRate) / 100;
-								if (NewRadiation <= MinRadiation)
-								{
-									NewRadiation = MinRadiation;
-									ReactorStoppedTimestamp = 0d;
-								}
-								emitter.radiation = NewRadiation;
-							}
-						}
-					}
-				}
 				// Update MaxThrottle according to reactor CoreIntegrity
 				MaxThrottle = engineModule.CoreIntegrity / 100f;
 				if (MinThrottle > MaxThrottle)
@@ -343,43 +253,6 @@ namespace KerbalismSystemHeat
 						Lib.Proto.Set(reactor, "Enabled", false);
 					}
 				}
-				else
-				{
-					// Reactor disabled - radiation decay mechanics
-					if (Features.Radiation &&
-						Lib.Proto.GetBool(module_snapshot, "ReactorHasStarted") &&
-						Lib.Proto.GetDouble(module_snapshot, "ReactorStoppedTimestamp") > 0 &&
-						Lib.Proto.GetDouble(module_snapshot, "MinEmissionPercent") < 100)
-					{
-						ProtoPartModuleSnapshot emitter = KSHUtils.FindPartModuleSnapshot(part_snapshot, "Emitter");
-						if (emitter != null)
-						{
-							double EmitterMaxRadiation = Lib.Proto.GetDouble(module_snapshot, "EmitterMaxRadiation");
-							double MinEmissionPercent = Lib.Proto.GetDouble(module_snapshot, "MinEmissionPercent");
-							double EmissionDecayRate = Lib.Proto.GetDouble(module_snapshot, "EmissionDecayRate");
-							double MinRadiation = EmitterMaxRadiation * MinEmissionPercent / 100;
-							if (EmissionDecayRate <= 0)
-							{
-								Lib.Proto.Set(emitter, "radiation", MinRadiation);
-								Lib.Proto.Set(module_snapshot, "ReactorStoppedTimestamp", 0d);
-							}
-							else
-							{
-								double secondsPassed = Planetarium.GetUniversalTime() - Lib.Proto.GetDouble(module_snapshot, "ReactorStoppedTimestamp");
-								if (secondsPassed > 0)
-								{
-									double NewRadiation = EmitterMaxRadiation * (100 - secondsPassed / EmissionDecayRate) / 100;
-									if (NewRadiation <= MinRadiation)
-									{
-										NewRadiation = MinRadiation;
-										Lib.Proto.Set(module_snapshot, "ReactorStoppedTimestamp", 0d);
-									}
-									Lib.Proto.Set(emitter, "radiation", NewRadiation);
-								}
-							}
-						}
-					}
-				}
 				// Prevent resource consumption in ModuleSystemHeatFissionReactor.DoCatchup()
 				// by setting LastUpdate to current time
 				Lib.Proto.Set(reactor, "LastUpdateTime", Planetarium.GetUniversalTime());
@@ -403,17 +276,6 @@ namespace KerbalismSystemHeat
 				KSHUtils.LogError($"[{part}] No ModuleSystemHeatFissionEngine was found.");
 			}
 			return engine;
-		}
-
-		// Find Emitter module on part (Kerbalism radiation source)
-		public Emitter FindEmitterModule(Part part)
-		{
-			Emitter emitter = part.GetComponents<Emitter>().ToList().First();
-			if (emitter == null)
-			{
-				KSHUtils.LogWarning($"[{part}] No radiation Emitter was found.");
-			}
-			return emitter;
 		}
 	}
 }

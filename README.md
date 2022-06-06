@@ -1,6 +1,6 @@
 # Kerbalism SystemHeat
 
-"Middleman" mod, which implements Kerbalism resource system support for [Nertea's SystemHeat](https://forum.kerbalspaceprogram.com/index.php?/topic/193909-111x-systemheat-a-replacement-for-the-coreheat-system-june-4th/).
+"Middleman" mod, which implements Kerbalism resource system support for [Nertea's SystemHeat](https://forum.kerbalspaceprogram.com/index.php?/topic/193909-*).
 
 
 ## What partmodules and features of SystemHeat mod are supported and how?
@@ -27,11 +27,6 @@ Planner simulation for converters and harvesters is activated by turning SystemH
 
 "Simulated resource abundance" parameter added to harvesters for player's convenience (similarly to Kerbalism Harvester partmodule).
 
-### Some rework for radioactivity of fission reactors and engines
-
-Kerbalism emulates radioactivity from fission reactors and engines by adding special "Emitter" module for such parts. However, Emitter partmodule doesn't care if reactor/engine was ever started, and always "emits" at constant power.
-This mod changes behavior this in more realistic manner: fission reactor/engine will begin emit radiation only then they have started, and after they have been shutdown, emission will slowly decay to some minimum value.
-
 
 ## Kerbalism profiles support
 
@@ -47,20 +42,26 @@ This is intended, at least until I figure out how to properly integrate Kerbalis
 ## Dependencies
 
 * [Kerbalism (3.14)](https://github.com/Kerbalism/Kerbalism)
-* [SystemHeat (0.4.3)](https://github.com/post-kerbin-mining-corporation/SystemHeat)
+* [SystemHeat (0.5.6)](https://github.com/post-kerbin-mining-corporation/SystemHeat)
+* [Module manager (last version preferred)](https://github.com/sarbian/ModuleManager)
 * SystemHeatFissionReactors (from SystemHeat/Extras)
 * SystemHeatFissionEngines (from SystemHeat/Extras)
-* [Module manager (last version preferred)](https://github.com/sarbian/ModuleManager)
 
 
 ## Supported KSP versions
 
-KerbalismSystemHeat have been tested in KSP versions from 1.8.1 to 1.11.2.
+KerbalismSystemHeat have been tested in KSP versions from 1.8.1 to 1.12.3.
 
 
 ## Mods support
 
-* [USI Core](https://github.com/UmbraSpaceIndustries/USI_Core) - USI reactors will be switched to SystemHeat modules
+* Atomic Age (either old one or as part of SpaceTux Industries Recycled Parts) - SystemHeat support for wrap-around radiators and nuclear engines
+* [Heat Control](https://github.com/post-kerbin-mining-corporation/HeatControl) - SystemHeat support for heat exchangers (radiators are already suppported by SystemHeat)
+* [Missing History](https://github.com/UmbraSpaceIndustries/USI_Core) - SystemHeat support for nuclear engines
+* [Near Future Aeronautics](https://github.com/post-kerbin-mining-corporation/NearFutureAeronautics) - SystemHeat support for nuclear engines
+* [Near Future Electrics](https://github.com/post-kerbin-mining-corporation/NearFutureElectrical) - if SystemHeatConverters is installed, nuclear recycler will use SystemHeat mechanics
+* [USI FTT](https://github.com/UmbraSpaceIndustries/FTT) - SystemHeat support for nuclear reactors
+* [USI Core](https://github.com/UmbraSpaceIndustries/USI_Core) - SystemHeat support for nuclear reactors and nuclear materials containers
 
 
 ## Installation
@@ -81,7 +82,7 @@ If you want to install it, just copy `SystemHeatFissionReactorsLowerMinThrust` f
 
 The MIT License (MIT)
 
-Copyright (c) 2021 Alexander Rogov
+Copyright (c) 2022 Alexander Rogov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
